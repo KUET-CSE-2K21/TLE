@@ -147,9 +147,9 @@ def main():
     intents = discord.Intents.default()
     intents.members = True
 
-    bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
     bot.help_command = CustomHelp()
 
+    bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
     for extension in cogs:
         bot.load_extension(f'tle.cogs.{extension}')
