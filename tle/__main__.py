@@ -36,6 +36,9 @@ from tle.util import clist_api
 
 prefix = ';'
 
+intents = discord.Intents.default()
+intents.members = True
+
 bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents)
 
 def setup():
@@ -147,9 +150,6 @@ def main():
         constants.ALLOW_DUEL_SELF_REGISTER = bool(distutils.util.strtobool(allow_self_register))
 
     setup()
-    
-    intents = discord.Intents.default()
-    intents.members = True
 
     bot.help_command = CustomHelp()
 
