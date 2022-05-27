@@ -49,7 +49,7 @@ class Meta(commands.Cog):
         self.bot = bot
         self.start_time = time.time()
 
-    @commands.group(brief='Bot control', invoke_without_command=True, hidden=True)
+    @commands.group(brief='Bot control', invoke_without_command=True)
     async def meta(self, ctx):
         """Command the bot or get information about the bot."""
         await ctx.send_help(ctx.command)

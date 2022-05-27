@@ -40,7 +40,7 @@ class HandleLists(commands.Cog):
         cf_common.user_db.unban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" unbanned!!! ```")
     
-    @commands.group(brief='Command to create roles for codeforces/codechef', hidden=True, invoke_without_command=True)
+    @commands.group(brief='Command to create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
     async def createroles(self, ctx):
         await ctx.send_help(ctx.command)
