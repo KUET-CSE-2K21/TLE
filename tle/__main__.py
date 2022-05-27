@@ -14,6 +14,8 @@ import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import storage
 
+import tle.embed_handler as embed_handler
+
 STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
 bucket = None
 if STORAGE_BUCKET!='None':
@@ -32,6 +34,9 @@ from tle.util import codeforces_common as cf_common
 from tle.util import discord_common, font_downloader
 from tle.util import clist_api
 
+prefix = ';'
+
+bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), intents=intents)
 
 def setup():
     # Make required directories.
@@ -73,19 +78,19 @@ class CustomHelp(commands.HelpCommand):
 
         cogs = {}
 
-        embed = embed_handler.single_message(client, "Help")
+        embed = embed_handler.single_message(bot, "Help")
         embed.title = "Commands list"
 
-        for cog in client.cogs:
-            embed.add_field(name = f"{cog}", value = "`" + "`, `".join(cmd.name for cmd in client.cogs[cog].walk_commands()) + "`", inline = False)     
+        for cog in bot.cogs:
+            embed.add_field(name = f"{cog}", value = "`" + "`, `".join(cmd.name for cmd in bot.cogs[cog].walk_commands()) + "`", inline = False)     
 
-        embed.add_field(name = f"Use `{client.command_prefix}help <command/category>` for more info.", value = "\u200b", inline = False)
+        embed.add_field(name = f"Use `{prefix}help <command/category>` for more info.", value = "\u200b", inline = False)
 
         await self.context.reply(embed = embed, mention_author = False)
 
     async def send_command_help(self, command):
  
-        embed = embed_handler.single_message(client, "Help")
+        embed = embed_handler.single_message(bot, "Help")
 
         embed.title = self.get_command_signature(command)
         embed.add_field(name = "Description", value = command.description)
@@ -99,7 +104,7 @@ class CustomHelp(commands.HelpCommand):
 
     async def send_cog_help(self, cog):
 
-        embed = embed_handler.single_message(client, "Help")
+        embed = embed_handler.single_message(bot, "Help")
 
         embed.title = cog.qualified_name
         embed.description = "\n".join(f'`{command.qualified_name}`ㅤㅤㅤ{command.brief}' for command in cog.walk_commands())
@@ -108,7 +113,7 @@ class CustomHelp(commands.HelpCommand):
 
     async def send_error_message(self, error):
 
-        embed = embed_handler.single_message(client, "Command or cog not found")
+        embed = embed_handler.single_message(bot, "Command or cog not found")
         
         if str(error).startswith("No command called"):
 
@@ -120,13 +125,12 @@ class CustomHelp(commands.HelpCommand):
 
         else:
 
-            embed = embed_handler.single_message(client, "Unknown error occured")
+            embed = embed_handler.single_message(bot, "Unknown error occured")
 
             embed.description = f'```py{str(error)}```'
             embed.title = "An error occurred."
 
             await self.context.reply(embed = embed, mention_author = False)
-
 
 def main():
     parser = argparse.ArgumentParser()
@@ -147,7 +151,6 @@ def main():
     intents = discord.Intents.default()
     intents.members = True
 
-    bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
     bot.help_command = CustomHelp()
 
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
