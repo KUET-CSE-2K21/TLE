@@ -6,7 +6,14 @@ def error_handler(client, error, ctx):
     embed.description = "Please try again. Error: {}".format(error)
     embed.set_footer(text = "Requested by {}".format(ctx.message.author.name), icon_url = ctx.message.author.avatar_url)
     return embed
-    
+
+def currently_playing(client, title, link, loop, volume, duration, channel, ctx):
+    embed = discord.Embed(color = discord.Colour.random(), timestamp = datetime.datetime.now())
+    embed.set_author(name = "Now playing", icon_url = client.user.avatar_url)
+    embed.description = '**[{}]({})**'.format(title.title(), link) + '\n' + "Loop: " + '`{}`'.format(loop) + ' | ' + 'Volume: ' + '`{}`'.format(volume) + ' | ' + 'Duration: ' + '`{}`'.format(duration) + ' | ' + 'Channel: ' + '`{}`'.format(channel)
+    embed.set_footer(text = f"Requested by {ctx.message.author.name}".format(), icon_url = ctx.message.author.avatar_url)
+    return embed
+
 def single_message(client, text, description = ""):
     embed = discord.Embed(color = discord.Colour.random(), timestamp = datetime.datetime.now())
     embed.set_author(name = text)
