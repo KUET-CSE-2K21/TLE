@@ -362,16 +362,6 @@ class Handles(commands.Cog):
             except:
                 pass
 
-    @commands.command(brief='update status, mark guild members as active')
-    @commands.check_any(commands.has_role('Admin'), commands.is_owner())
-    async def _updatestatus(self, ctx):
-        gid = ctx.guild.id
-        active_ids = [m.id for m in ctx.guild.members]
-        cf_common.user_db.reset_status(gid)
-        rc = sum(cf_common.user_db.update_status(gid, chunk) for chunk in paginator.chunkify(active_ids, 100))
-        cf_common.user_db.update()
-        await ctx.send(f'{rc} members active with handle')
-
     @commands.Cog.listener()
     async def on_member_join(self, member):
         rc = cf_common.user_db.update_status(member.guild.id, [member.id])
@@ -636,7 +626,7 @@ class Handles(commands.Cog):
     @handle.command(brief='Remove handle for a user')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
     async def remove(self, ctx, member: discord.Member):
-        """Remove Codeforces handle of a user."""
+        """Remove Codeforces handle of a user (+ @user)."""
         rc = cf_common.user_db.remove_handle(member.id, ctx.guild.id)
         if not rc:
             raise HandleCogError(f'Handle for {member.mention} not found in database')
@@ -649,7 +639,7 @@ class Handles(commands.Cog):
     @handle.command(brief='Remove handle for a user')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
     async def removebyid(self, ctx, member_id:int):
-        """Remove Codeforces handle of a user."""
+        """Remove Codeforces handle of a user (+ user id)."""
         rc = cf_common.user_db.remove_handle(member_id, ctx.guild.id)
         member = ctx.guild.get_member(member_id)
         mention = 'unknown' if not member else member.mention
@@ -714,40 +704,6 @@ class Handles(commands.Cog):
             lines += failed
         return discord_common.embed_success('\n'.join(lines))
 
-    @commands.command(brief="Show gudgitters of the last 30 days", aliases=["recentgitgudders"])
-    async def recentgudgitters(self, ctx):
-        """Show the list of users of gitgud with their scores."""
-        minimal_finish_time = int(datetime.datetime.now().timestamp())-30*24*60*60
-        results = cf_common.user_db.get_gudgitters_last(minimal_finish_time)
-        res = {}
-        for entry in results:
-            res[entry[0]] = 0
-        for entry in results:
-            res[entry[0]] += _GITGUD_SCORE_DISTRIB[(int(entry[1])+300)//100]
-        
-        rankings = []
-        index = 0
-        for user_id, score in sorted(res.items(), key=lambda item: item[1], reverse=True):
-            member = ctx.guild.get_member(int(user_id))
-            if member is None:
-                continue
-            if score > 0:
-                handle = cf_common.user_db.get_handle(user_id, ctx.guild.id)
-                user = cf_common.user_db.fetch_cf_user(handle)
-                if user is None:
-                    continue
-                discord_handle = member.display_name
-                rating = user.rating
-                rankings.append((index, discord_handle, handle, rating, score))
-                index += 1
-            if index == 20:
-                break
-
-        if not rankings:
-            raise HandleCogError('No one has completed a gitgud challenge, send ;gitgud to request and ;gotgud to mark it as complete')
-        discord_file = get_gudgitters_image(rankings)
-        await ctx.send(file=discord_file)
-
     @commands.command(brief="Show gudgitters", aliases=["gitgudders"])
     async def gudgitters(self, ctx):
         """Show the list of users of gitgud with their scores."""
@@ -781,82 +737,6 @@ class Handles(commands.Cog):
         rating_changes = [change for change in rating_changes
                     if self.dlo <= change.ratingUpdateTimeSeconds < self.dhi]
         return rating_changes
-
-    @commands.command(brief="Show gudgitters of the month", aliases=["monthlygitgudders"], usage="[div1|div2|div3] [d=mmyyyy]")
-    async def monthlygudgitters(self, ctx, *args):
-        """Show the list of users of gitgud with their scores."""
-        
-        # Calculate time range of given month (d=) or current month
-        now_time = datetime.datetime.now()
-        for arg in args:
-            if arg[0:2] == 'd=':
-                now_time = parse_date(arg[2:])
-        now_time = now_time.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        start_time = int(now_time.timestamp())
-        if now_time.month == 12:
-            now_time = now_time.replace(month=1,year=now_time.year+1)
-        else:
-            now_time = now_time.replace(month=now_time.month+1)
-        end_time = int(now_time.timestamp())
-        
-        division = None
-        for arg in args:
-            if arg[0:3] == 'div':
-                try:
-                    division = int(arg[3])
-                    if division < 1 or division > 3: 
-                        raise HandleCogError('Division number must be within range [1-3]')
-                except ValueError:
-                    raise HandleCogError(f'{arg} is an invalid div argument')
-       
-        # get gitgud of month and calculate scores
-        results = cf_common.user_db.get_gudgitters_timerange(start_time, end_time)
-        res = {}
-        for entry in results:
-            res[entry[0]] = 0
-        for entry in results:
-            res[entry[0]] += _GITGUD_SCORE_DISTRIB[(int(entry[1])+300)//100]
-        
-        rankings = []
-        index = 0
-        cache = cf_common.cache2.rating_changes_cache
-        for user_id, score in sorted(res.items(), key=lambda item: item[1], reverse=True):
-            member = ctx.guild.get_member(int(user_id))
-            if member is None:
-                continue
-            if score > 0:
-                handle = cf_common.user_db.get_handle(user_id, ctx.guild.id)
-                user = cf_common.user_db.fetch_cf_user(handle)
-                if user is None:
-                    continue
-                rating = user.rating
-                
-                #### Live checking of a rating is not working since we get rate limited
-                # check if user is in a certain division
-                #handle, = await cf_common.resolve_handles(ctx, self.converter, (handle,))
-                #rating_changes = await cf.user.rating(handle=handle)
-                #rating_changes = [change for change in rating_changes if change.ratingUpdateTimeSeconds < start_time]
-                #### Taking stuff from cache instead
-                rating_changes = cache.get_rating_changes_for_handle(handle)
-                rating_changes = [change for change in rating_changes if change.ratingUpdateTimeSeconds < start_time]
-                rating_changes.sort(key=lambda a: a.ratingUpdateTimeSeconds)
-                if division is not None:
-                    if len(rating_changes) < 6: 
-                        continue
-                    if rating_changes[-1] is None: continue
-                    if rating_changes[-1].newRating < _DIVISION_RATING_LOW[division-1] or rating_changes[-1].newRating > _DIVISION_RATING_HIGH[division-1]:
-                        continue
-                    rating = rating_changes[-1].newRating
-                discord_handle = member.display_name
-                rankings.append((index, discord_handle, handle, rating, score))
-                index += 1
-            if index == 20:
-                break
-
-        if not rankings:
-            raise HandleCogError('No one has completed a gitgud challenge, send ;gitgud to request and ;gotgud to mark it as complete')
-        discord_file = get_gudgitters_image(rankings)
-        await ctx.send(file=discord_file)
 
     @handle.command(brief="Show all handles", usage="[countries...] [website]")
     async def list(self, ctx, resource='codeforces.com'):
@@ -1134,7 +1014,7 @@ class Handles(commands.Cog):
         return embeds
 
     @commands.group(brief='Commands for role updates',
-                    invoke_without_command=True, hidden=True)
+                    invoke_without_command=True)
     async def roleupdate(self, ctx):
         """Group for commands involving role updates."""
         await ctx.send_help(ctx.command)
@@ -1220,37 +1100,6 @@ class Handles(commands.Cog):
         rankup_embeds = self._make_rankup_embeds(ctx.guild, contest, change_by_handle)
         for rankup_embed in rankup_embeds:
             await ctx.channel.send(embed=rankup_embed)
-
-    async def _generic_remind(self, ctx, action, role_name, what):
-        roles = [role for role in ctx.guild.roles if role.name == role_name]
-        if not roles:
-            raise HandleCogError(f'Role `{role_name}` not present in the server')
-        role = roles[0]
-        if action == 'give':
-            if role in ctx.author.roles:
-                await ctx.send(embed=discord_common.embed_neutral(f'You are already subscribed to {what} reminders'))
-                return
-            await ctx.author.add_roles(role, reason=f'User subscribed to {what} reminders')
-            await ctx.send(embed=discord_common.embed_success(f'Successfully subscribed to {what} reminders'))
-        elif action == 'remove':
-            if role not in ctx.author.roles:
-                await ctx.send(embed=discord_common.embed_neutral(f'You are not subscribed to {what} reminders'))
-                return
-            await ctx.author.remove_roles(role, reason=f'User unsubscribed from {what} reminders')
-            await ctx.send(embed=discord_common.embed_success(f'Successfully unsubscribed from {what} reminders'))
-        else:
-            raise HandleCogError(f'Invalid action {action}')
-
-    @commands.command(brief='Grants or removes the specified pingable role',
-                      usage='[give/remove] [vc/duel]')
-    async def role(self, ctx, action: str, which: str):
-        """e.g. ;role remove duel"""
-        if which == 'vc':
-            await self._generic_remind(ctx, action, 'Virtual Contestant', 'vc')
-        elif which == 'duel':
-            await self._generic_remind(ctx, action, 'Duelist', 'duel')
-        else:
-            raise HandleCogError(f'Invalid role {which}')
 
     @discord_common.send_error_if(HandleCogError, cf_common.HandleIsVjudgeError)
     async def cog_command_error(self, ctx, error):
