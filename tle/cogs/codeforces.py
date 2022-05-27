@@ -232,9 +232,9 @@ class Codeforces(commands.Cog):
             embed.add_field(name='Matched tags', value=tagslist)
         await ctx.send(f'Recommended problem for `{handle}`', embed=embed)
 
-    # @commands.command(brief='(beta) Calculate a math expression', usage='[expression]')
-    # async def calc(self, ctx, exp: str = '0'):
-    #     await ctx.send(str(eval(exp)))
+    @commands.command(brief='(beta) Calculate a math expression', usage='[expression]')
+    async def calc(self, ctx, exp: str = '0'):
+        await ctx.send(str(eval(exp)))
 
     @commands.command(brief='List solved problems',
                       usage='[handles] [+hardest] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [c+marker..] [i+index..]')
