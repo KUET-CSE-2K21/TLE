@@ -147,7 +147,7 @@ six = "*"
 
 [[package]]
 name = "discord.py"
-version = "1.7.3"
+version = "1.5.1"
 description = "A Python wrapper for the Discord API"
 category = "main"
 optional = false
