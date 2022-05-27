@@ -276,8 +276,7 @@ class Codeforces(commands.Cog):
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
     
 
-    @commands.command(brief='See weekly leaderboard',usage='', hidden=True)
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.command(brief='See weekly leaderboard',usage='')
     async def leaderboard(self, ctx, *args):
         handles = {handle for discord_id, handle
                             in cf_common.user_db.get_handles_for_guild(ctx.guild.id)}
@@ -620,84 +619,6 @@ class Codeforces(commands.Cog):
 
         pages = [make_page(chunk) for chunk in paginator.chunkify(contest_unsolved_pairs, 10)]
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
-
-    @staticmethod
-    def getEloWinProbability(ra: float, rb: float) -> float:
-        return 1.0 / (1 + 10**((rb - ra) / 400.0))
-
-    @staticmethod
-    def composeRatings(left: float, right: float, ratings: List[float]) -> int:
-        for tt in range(20):
-            r = (left + right) / 2.0
-
-            rWinsProbability = 1.0
-            for rating, count in ratings:
-                rWinsProbability *= Codeforces.getEloWinProbability(r, rating)**count
-
-            if rWinsProbability < 0.5:
-                left = r
-            else:
-                right = r
-        return round((left + right) / 2)
-
-    @commands.command(brief='Calculate team rating', usage='[handles] [+peak]')
-    async def teamrate(self, ctx, *args: str):
-        """Provides the combined rating of the entire team.
-        If +server is provided as the only handle, will display the rating of the entire server.
-        Supports multipliers. e.g: ;teamrate gamegame*1000"""
-
-        (is_entire_server, peak), handles = cf_common.filter_flags(args, ['+server', '+peak'])
-        handles = handles or ('!' + str(ctx.author),)
-
-        def rating(user):
-            return user.maxRating if peak else user.rating
-
-        if is_entire_server:
-            res = cf_common.user_db.get_cf_users_for_guild(ctx.guild.id)
-            ratings = [(rating(user), 1) for user_id, user in res if user.rating is not None]
-            user_str = '+server'
-        else:
-            def normalize(x):
-                return [i.lower() for i in x]
-            handle_counts = {}
-            parsed_handles = []
-            for i in handles:
-                parse_str = normalize(i.split('*'))
-                if len(parse_str) > 1:
-                    try:
-                        handle_counts[parse_str[0]] = int(parse_str[1])
-                    except ValueError:
-                        raise CodeforcesCogError("Can't multiply by non-integer")
-                else:
-                    handle_counts[parse_str[0]] = 1
-                parsed_handles.append(parse_str[0])
-
-            cf_handles = await cf_common.resolve_handles(ctx, self.converter, parsed_handles, mincnt=1, maxcnt=1000)
-            cf_handles = normalize(cf_handles)
-            cf_to_original = {a: b for a, b in zip(cf_handles, parsed_handles)}
-            original_to_cf = {a: b for a, b in zip(parsed_handles, cf_handles)}
-            users = await cf.user.info(handles=cf_handles)
-            user_strs = []
-            for a, b in handle_counts.items():
-                if b > 1:
-                    user_strs.append(f'{original_to_cf[a]}*{b}')
-                elif b == 1:
-                    user_strs.append(original_to_cf[a])
-                elif b <= 0:
-                    raise CodeforcesCogError('How can you have nonpositive members in team?')
-
-            user_str = ', '.join(user_strs)
-            ratings = [(rating(user), handle_counts[cf_to_original[user.handle.lower()]])
-                       for user in users if user.rating]
-
-        if len(ratings) == 0:
-            raise CodeforcesCogError("No CF usernames with ratings passed in.")
-
-        left = -100.0
-        right = 10000.0
-        teamRating = Codeforces.composeRatings(left, right, ratings)
-        embed = discord.Embed(title=user_str, description=teamRating, color=cf.rating2rank(teamRating).color_embed)
-        await ctx.send(embed = embed)
 
     @discord_common.send_error_if(CodeforcesCogError, cf_common.ResolveHandleError,
                                   cf_common.FilterError)

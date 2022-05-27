@@ -59,16 +59,14 @@ class Meta(commands.Cog):
     async def restart(self, ctx):
         """Restarts the bot."""
         await ctx.send('Restarting...')
-        time.sleep(1)
-        await ctx.send('Oh wait. Who tf are you? You\'re not my owner _dlbm17.')
-        # os._exit(RESTART)
+        os._exit(RESTART)
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()
     async def kill(self, ctx):
         """Restarts the bot."""
-        await ctx.send('\"You think you can kill me?\"')
-        # os._exit(0)
+        await ctx.send('Dying...')
+        os._exit(0)
 
     @meta.command(brief='Is TLE up?')
     async def ping(self, ctx):
