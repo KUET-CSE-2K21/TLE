@@ -137,7 +137,7 @@ def main():
     parser.add_argument('--nodb', action='store_true')
     args = parser.parse_args()
 
-    token = "OTc5NzU5NTI5MTc0NjYzMzA4.GQbfZe.M4sVGsGGvlULzTjXkK1SJTaS2Os8NjGosCNJ44"
+    token = environ.get('BOT_TOKEN')
     if not token:
         logging.error('Token required')
         return
