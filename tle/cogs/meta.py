@@ -71,12 +71,15 @@ class Meta(commands.Cog):
         pass
 
     @commands.command(brief='(unofficial) Calculate a math expression', usage='[expression]')
-    @commands.is_owner()
     async def calc(self, ctx, *args):
         """Calculate a math expression (in python format).
-        Note that ALL CONSTANTS and the ANSWER must be 2000 or fewer in LENGTH.
-        e.g ;calc 10**9 + 7"""
-        await ctx.send(eval(' '.join(args)))
+        This function is owner-only command due to technical reason.
+        Note that ALL CONSTANTS and the ANSWER must be 1000 or fewer in LENGTH.
+
+        e.g ;calc (10**9 + 7) % 17
+        The bot should respond with 14"""
+        if (commands.is_owner()): await ctx.send(eval(' '.join(args)))
+        else: await ctx.send('''This command is under maintenance.''')
 
     @commands.group(brief='Command to create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
