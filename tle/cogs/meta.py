@@ -76,7 +76,7 @@ class Meta(commands.Cog):
         """Calculate a math expression (in python format).
         Note that ALL CONSTANTS and the ANSWER must be 2000 or fewer in LENGTH.
         e.g ;calc 10**9 + 7"""
-        await ctx.send(eval(str(exp)))
+        await ctx.send(eval(str(args)))
 
     @commands.group(brief='Command to create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
