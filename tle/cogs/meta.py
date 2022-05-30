@@ -7,6 +7,7 @@ import logging
 import json
 import discord
 
+from math import *
 from tle.util import codeforces_common as cf_common
 from tle.util import codeforces_api as cf
 from tle import constants
