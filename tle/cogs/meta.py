@@ -113,7 +113,7 @@ class Meta(commands.Cog):
     @commands.is_owner()
     async def guilds(self, ctx):
         "Replies with info on the bot's guilds"
-        await ctx.send('I\'m in' + len(self.bot.guilds) + 'servers!')
+        await ctx.send('I\'m in' + str(len(self.bot.guilds)) + 'servers!')
         # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
         msg = [f'Name: {guild.name} | Owner: {guild.owner.id}'
                 for guild in self.bot.guilds]
