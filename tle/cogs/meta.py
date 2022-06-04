@@ -24,37 +24,6 @@ from tle.util import clist_api
 
 RESTART = 42
 
-
-# Adapted from numpy sources.
-# https://github.com/numpy/numpy/blob/master/setup.py#L64-85
-def git_history():
-    def _minimal_ext_cmd(cmd):
-        # construct minimal environment
-        env = {}
-        for k in ['SYSTEMROOT', 'PATH']:
-            v = os.environ.get(k)
-            if v is not None:
-                env[k] = v
-        # LANGUAGE is used on win32
-        env['LANGUAGE'] = 'C'
-        env['LANG'] = 'C'
-        env['LC_ALL'] = 'C'
-        out = subprocess.Popen(cmd, stdout = subprocess.PIPE, env=env).communicate()[0]
-        return out
-    try:
-        out = _minimal_ext_cmd(['git', 'rev-parse', '--abbrev-ref', 'HEAD'])
-        branch = out.strip().decode('ascii')
-        out = _minimal_ext_cmd(['git', 'log', '--oneline', '-5'])
-        history = out.strip().decode('ascii')
-        return (
-            'Branch:\n' +
-            textwrap.indent(branch, '  ') +
-            '\nCommits:\n' +
-            textwrap.indent(history, '  ')
-        )
-    except OSError:
-        return "Fetching git info failed"
-
 async def _create_roles(ctx, ranks):
     for rank in ranks[::-1]:
         guild = ctx.guild
@@ -134,11 +103,6 @@ class Meta(commands.Cog):
         await message.edit(content=f'REST API latency: {int(duration)}ms\n'
                                    f'Gateway API latency: {int(self.bot.latency * 1000)}ms')
 
-    @meta.command(brief='Get git information')
-    async def git(self, ctx):
-        """Replies with git information."""
-        await ctx.send('```yaml\n' + git_history() + '```')
-
     @meta.command(brief='Prints bot uptime')
     async def uptime(self, ctx):
         """Replies with how long TLE has been up."""
@@ -149,7 +113,9 @@ class Meta(commands.Cog):
     @commands.is_owner()
     async def guilds(self, ctx):
         "Replies with info on the bot's guilds"
-        msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
+        await ctx.send('I\'m in' + len(self.bot.guilds) + 'servers!')
+        # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
+        msg = [f'Name: {guild.name} | Owner: {guild.owner.id}'
                 for guild in self.bot.guilds]
         await ctx.send('```' + '\n'.join(msg) + '```')
     
