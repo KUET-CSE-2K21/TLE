@@ -116,19 +116,25 @@ class Meta(commands.Cog):
         await ctx.send('I\'m in ' + str(len(self.bot.guilds)) + ' servers!')
         # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
         msg = []
+
+        glen = 0
+        for guild in self.bot.guilds:
+            glen = max(glen, len(guild.name))
+        glen = min(glen, 34)
+
         for guild in self.bot.guilds:
             guildname = guild.name
-            if len(guildname) > 34:
-                guildname = guildname[:31] + '...'
+            if len(guildname) > glen:
+                guildname = guildname[:glen - 3] + '...'
             else:
-                guildname = guildname + (34 - len(guildname))*' '
+                guildname = guildname + (glen - len(guildname))*' '
 
             ownername = guild.owner.name
-            if len(ownername) > 34:
-                ownername = ownername[:31] + '...'
+            if len(ownername) > glen:
+                ownername = ownername[:glen - 3] + '...'
             else:
-                ownername = ownername + (34 - len(ownername))*' '
-                
+                ownername = ownername + (glen - len(ownername))*' '
+
             msg.append(f'Name: {guildname} | Owner: {ownername}')
         await ctx.send('```' + '\n'.join(msg) + '```')
     
