@@ -1015,6 +1015,7 @@ class Handles(commands.Cog):
 
     @commands.group(brief='Commands for role updates',
                     invoke_without_command=True)
+    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
     async def roleupdate(self, ctx):
         """Group for commands involving role updates."""
         await ctx.send_help(ctx.command)

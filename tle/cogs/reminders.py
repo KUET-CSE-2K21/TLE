@@ -315,6 +315,7 @@ class Reminders(commands.Cog):
 
     @commands.group(brief='Commands for contest reminders',
                     invoke_without_command=True)
+    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
     async def remind(self, ctx):
         await ctx.send_help(ctx.command)
 
@@ -377,7 +378,7 @@ class Reminders(commands.Cog):
 
     @remind.command(brief='Resets the judges settings to the default ones')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
-    async def reset_judges_settings(self, ctx):
+    async def reset(self, ctx):
         """ Resets the judges settings to the default ones.
         """
         _, _, _, _, default_allowed_patterns, default_disallowed_patterns = \
