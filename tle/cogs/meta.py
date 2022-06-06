@@ -118,9 +118,17 @@ class Meta(commands.Cog):
         msg = []
         for guild in self.bot.guilds:
             guildname = guild.name
+            if len(guildname) > 34:
+                guildname = guildname[:31] + '...'
+            else:
+                guildname = guildname + (34 - len(guildname))*' '
+
             ownername = guild.owner.name
-            if len(guildname) > 34: guildname = guildname[:31] + '...'
-            if len(ownername) > 34: ownername = ownername[:31] + '...'
+            if len(ownername) > 34:
+                ownername = ownername[:31] + '...'
+            else:
+                ownername = ownername + (34 - len(ownername))*' '
+                
             msg.append(f'Name: {guildname} | Owner: {ownername}')
         await ctx.send('```' + '\n'.join(msg) + '```')
     
