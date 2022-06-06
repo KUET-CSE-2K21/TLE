@@ -115,8 +115,13 @@ class Meta(commands.Cog):
         "Replies with info on the bot's guilds"
         await ctx.send('I\'m in ' + str(len(self.bot.guilds)) + ' servers!')
         # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
-        msg = [f'Name: {guild.name} | Owner: {guild.owner.name}'
-                for guild in self.bot.guilds]
+        msg = []
+        for guild in self.bot.guilds:
+            guildname = guild.name
+            ownername = guild.owner.name
+            if len(guildname > 34): guildname = guildname[:31] + '...'
+            if len(ownername > 34): ownername = ownername[:31] + '...'
+            msg.append(f'Name: {guildname} | Owner: {ownername}')
         await ctx.send('```' + '\n'.join(msg) + '```')
     
     @meta.command(brief='Forcefully reset contests')
