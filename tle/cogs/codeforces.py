@@ -564,58 +564,6 @@ class Codeforces(commands.Cog):
         pages = [make_page(chunk) for chunk in paginator.chunkify(contests, 5)]
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
 
-    @commands.command(brief="Display unsolved rounds closest to completion", usage='[keywords]')
-    async def fullsolve(self, ctx, *args: str):
-        """Displays a list of contests, sorted by number of unsolved problems.
-        Contest names matching any of the provided tags will be considered. e.g ;fullsolve +edu"""
-        handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
-        tags = [x for x in args if x[0] == '+']
-
-        problem_to_contests = cf_common.cache2.problemset_cache.problem_to_contests
-        contests = [contest for contest in cf_common.cache2.contest_cache.get_contests_in_phase('FINISHED')
-                    if (not tags or contest.matches(tags)) and not cf_common.is_nonstandard_contest(contest)]
-
-        # subs_by_contest_id contains contest_id mapped to [list of problem.name]
-        subs_by_contest_id = defaultdict(set)
-        for sub in await cf.user.status(handle=handle):
-            if sub.verdict == 'OK':
-                try:
-                    contest = cf_common.cache2.contest_cache.get_contest(sub.problem.contestId)
-                    problem_id = (sub.problem.name, contest.startTimeSeconds)
-                    for contestId in problem_to_contests[problem_id]:
-                        subs_by_contest_id[contestId].add(sub.problem.name)
-                except cache_system2.ContestNotFound:
-                    pass
-
-        contest_unsolved_pairs = []
-        for contest in contests:
-            num_solved = len(subs_by_contest_id[contest.id])
-            try:
-                num_problems = len(cf_common.cache2.problemset_cache.get_problemset(contest.id))
-                if 0 < num_solved < num_problems:
-                    contest_unsolved_pairs.append((contest, num_solved, num_problems))
-            except cache_system2.ProblemsetNotCached:
-                # In case of recent contents or cetain bugged contests
-                pass
-
-        contest_unsolved_pairs.sort(key=lambda p: (p[2] - p[1], -p[0].startTimeSeconds))
-
-        if not contest_unsolved_pairs:
-            raise CodeforcesCogError(f'`{handle}` has no contests to fullsolve :confetti_ball:')
-
-        def make_line(entry):
-            contest, solved, total = entry
-            return f'[{contest.name}]({contest.url})\N{EN SPACE}[{solved}/{total}]'
-
-        def make_page(chunk):
-            message = f'Fullsolve list for `{handle}`'
-            full_solve_list = '\n'.join(make_line(entry) for entry in chunk)
-            embed = discord_common.cf_color_embed(description=full_solve_list)
-            return message, embed
-
-        pages = [make_page(chunk) for chunk in paginator.chunkify(contest_unsolved_pairs, 10)]
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
-
     @discord_common.send_error_if(CodeforcesCogError, cf_common.ResolveHandleError,
                                   cf_common.FilterError)
     async def cog_command_error(self, ctx, error):

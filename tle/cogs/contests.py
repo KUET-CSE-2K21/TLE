@@ -468,8 +468,8 @@ class Contests(commands.Cog):
             pass
         return contest
 
-    @commands.command(brief='Show ranklist for given handles and/or server members',
-        usage='[contest_name_regex / contest_id / -clist_contest_id] [handles...] [+top] [+server] [+list_name]')
+    @commands.command(brief='Show ranklist for given contest',
+        usage='[contest_name_regex / contest_id / -clist_contest_id] [handles...] [+server]')
     async def ranklist(self, ctx, contest_id: str, *handles: str):
         """Shows ranklist for the contest with given contest id/name. If handles contains
         '+server', all server members are included. No handles defaults to '+server'.
@@ -518,20 +518,14 @@ class Contests(commands.Cog):
                     if div in handles:
                         handles.remove(div)
                         selected_divs.append(divs[div])
-            show_top_50 = False
-            if "+top" in handles:
-                show_top_50 = True
-                handles.remove("+top")
-                account_ids = None
-            else:
-                account_ids= await cf_common.resolve_handles(ctx, self.member_converter, handles, maxcnt=None, default_to_all_server=True, resource=contest['resource'])
+            account_ids = await cf_common.resolve_handles(ctx, self.member_converter, handles, maxcnt=None, default_to_all_server=True, resource=contest['resource'])
             users = {}
             if resource=='codedrills.io':
                 clist_users = await clist.fetch_user_info(resource, account_ids)
                 for clist_user in clist_users:
                     users[clist_user['id']] = clist_user['name']
             standings_to_show = []
-            standings = await clist.statistics(contest_id=contest_id, account_ids=account_ids, with_extra_fields=True, with_problems=True, order_by='place', limit=50 if show_top_50 else 1000)
+            standings = await clist.statistics(contest_id=contest_id, account_ids=account_ids, with_extra_fields=True, with_problems=True, order_by='place', limit=50)
             for standing in standings:
                 if not standing['place'] or not standing['handle']:
                     continue
