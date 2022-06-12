@@ -230,10 +230,11 @@ class Graphs(commands.Cog):
         self.bot = bot
         self.converter = commands.MemberConverter()
 
-    @commands.group(brief='Graphs for analyzing Codeforces activity',
+    @commands.group(brief='Graphs for analyzing activities',
                     invoke_without_command=True)
     async def plot(self, ctx):
-        """Plot various graphs. Wherever Codeforces handles are accepted it is possible to use a server member's name instead by prefixing it with '!', for name with spaces use "!{name with spaces}" (with quotes)."""
+        """Plot various graphs. Wherever handles are accepted it is possible to use a server member's name instead by prefixing it with '!', for name with spaces use "!{name with spaces}" (with quotes).
+        Example: ;plot solved !GlowCheese"""
         await ctx.send_help('plot')
     
     @plot.command(brief='Show speed of solving problems by rating',
