@@ -233,9 +233,7 @@ class Graphs(commands.Cog):
     @commands.group(brief='Graphs for analyzing Codeforces activity',
                     invoke_without_command=True)
     async def plot(self, ctx):
-        """Plot various graphs. Wherever Codeforces handles are accepted it is possible to
-        use a server member's name instead by prefixing it with '!',
-        for name with spaces use "!name with spaces" (with quotes)."""
+        """Plot various graphs. Wherever Codeforces handles are accepted it is possible to use a server member's name instead by prefixing it with '!', for name with spaces use "!{name with spaces}" (with quotes)."""
         await ctx.send_help('plot')
     
     @plot.command(brief='Show speed of solving problems by rating',
@@ -328,10 +326,6 @@ class Graphs(commands.Cog):
 
         await ctx.send(embed=embed, file=discord_file)
 
-
-
-
-
     @plot.command(brief='Plot CodeChef rating graph excluding long challenges', usage='[handles...] [+zoom] [+peak] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
     async def nolongrating(self, ctx, *args: str):
         (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+peak'])
@@ -418,7 +412,7 @@ class Graphs(commands.Cog):
         discord_common.set_author_footer(embed, ctx.author)
         await ctx.send(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot Codeforces rating graph', usage='[codechef/atcoder] [handles...] [+zoom] [+peak] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
+    @plot.command(brief='Plot rating graph', usage='[codechef/atcoder] [handles...] [+zoom] [+peak] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
     async def rating(self, ctx, *args: str):
         """Plots Codeforces rating graph for the handles provided."""
 
@@ -515,9 +509,9 @@ class Graphs(commands.Cog):
 
                     
 
-    @plot.command(brief='Plot Codeforces performance graph', usage='[codechef/atcoder] [handles...] [+zoom] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
+    @plot.command(brief='Plot performance graph', usage='[codechef/atcoder] [handles...] [+zoom] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
     async def performance(self, ctx, *args: str):
-        """Plots Codeforces performance graph for the handles provided."""
+        """Plots Codeforces graph for the handles provided."""
 
         (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+asdfgdsafefsdve'])
         filt = cf_common.SubFilter()

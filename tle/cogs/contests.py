@@ -471,8 +471,7 @@ class Contests(commands.Cog):
     @commands.command(brief='Show ranklist for given contest',
         usage='[contest_name_regex / contest_id / -clist_contest_id] [handles...] [+server]')
     async def ranklist(self, ctx, contest_id: str, *handles: str):
-        """Shows ranklist for the contest with given contest id/name. If handles contains
-        '+server', all server members are included. No handles defaults to '+server'.
+        """Shows ranklist for the contest with given contest id/name.
         
         # For codeforces ranklist
         ;ranklist codeforces_contest_id
