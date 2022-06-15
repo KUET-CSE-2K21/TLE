@@ -40,7 +40,7 @@ class HandleLists(commands.Cog):
         The bot should respond with 14"""
         if args[0] == 'sum':
             await ctx.send(eval('+'.join(args[1:])))
-        elif args[0] == 'prod'
+        elif args[0] == 'prod':
             await ctx.send(eval('*'.join(args[1:])))
         else
             await ctx.send(eval(' '.join(args)))
