@@ -114,8 +114,6 @@ async def bot_error_handler(ctx, exception):
 
     if isinstance(exception, db.DatabaseDisabledError):
         await ctx.send(embed=embed_alert('Sorry, the database is not available. Some features are disabled.'))
-    elif isinstance(exception, commands.NoPrivateMessage):
-        await ctx.send(embed=embed_alert('Commands are disabled in private channels'))
     elif isinstance(exception, commands.DisabledCommand):
         await ctx.send(embed=embed_alert('Sorry, this command is temporarily disabled'))
     elif isinstance(exception, (cf.CodeforcesApiError, commands.UserInputError)):
