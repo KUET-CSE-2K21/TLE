@@ -32,17 +32,6 @@ class Meta(commands.Cog):
     async def on_ready(self):
         pass
 
-    @commands.command(brief='(unofficial) Calculate a math expression', usage='[expression]')
-    @commands.is_owner()
-    async def calc(self, ctx, *args):
-        """Calculate a math expression (in python format).
-        This function is owner-only command due to technical reason.
-        Note that ALL CONSTANTS and the ANSWER must be 1000 or fewer in LENGTH.
-
-        e.g ;calc (10**9 + 7) % 17
-        The bot should respond with 14"""
-        await ctx.send(eval(' '.join(args)))
-
     @discord_common.send_error_if(HandleCogError, cf_common.HandleIsVjudgeError)
     async def cog_command_error(self, ctx, error):
         pass
