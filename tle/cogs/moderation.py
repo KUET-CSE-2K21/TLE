@@ -48,7 +48,7 @@ class HandleLists(commands.Cog):
         except TypeError as e:
             await ctx.send(e)
         except SyntaxError as e:
-            await ctx.send('Invalid math expression. Please try again :face_with_raised_eyebrow:')
+            await ctx.send('Invalid math expression. Please try again!')
 
     @commands.command(brief='Command to ban users from accessing the bot')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
