@@ -45,8 +45,10 @@ class HandleLists(commands.Cog):
                 await ctx.send(eval('*'.join(args[1:])))
             else:
                 await ctx.send(eval(' '.join(args)))
-        except Exception as e:
+        except TypeError as e:
             await ctx.send(e)
+        except SyntaxError as e:
+            await ctx.send('Invalid math expression. Please try again :face_with_raised_eyebrow:')
 
     @commands.command(brief='Command to ban users from accessing the bot')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
