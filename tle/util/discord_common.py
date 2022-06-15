@@ -122,7 +122,7 @@ async def bot_error_handler(ctx, exception):
         await ctx.send(embed=embed_alert('You are not my owner :face_with_raised_eyebrow:'))
     elif isinstance(exception, (cf.CodeforcesApiError, commands.UserInputError)):
         await ctx.send(embed=embed_alert(exception))
-    elif isinstance(exception, clist.ClistApiError):
+    elif isinstance(exception, (clist.ClistApiError, commands.CheckAnyFailure)):
         await ctx.send(embed=embed_alert(exception))
     else:
         msg = 'Ignoring exception in command {}:'.format(ctx.command)
