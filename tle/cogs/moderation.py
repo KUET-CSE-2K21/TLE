@@ -87,4 +87,4 @@ class Moderator(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(HandleLists(bot))
+    bot.add_cog(Moderator(bot))
