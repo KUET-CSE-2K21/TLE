@@ -46,7 +46,7 @@ class HandleLists(commands.Cog):
             else:
                 await ctx.send(eval(' '.join(args)))
         except Exception as e:
-            await ctx.send(e.message)
+            await ctx.send(e)
 
     @commands.command(brief='Command to ban users from accessing the bot')
     @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
