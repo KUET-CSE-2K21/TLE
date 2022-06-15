@@ -18,7 +18,7 @@ async def _create_roles(ctx, ranks):
         guild = ctx.guild
         await guild.create_role(name=rank.title, colour=discord.Colour(rank.color_embed))
 
-class HandleLists(commands.Cog):
+class Moderator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.logger = logging.getLogger(self.__class__.__name__)
