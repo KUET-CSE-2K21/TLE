@@ -42,7 +42,7 @@ class HandleLists(commands.Cog):
             await ctx.send(eval('+'.join(args[1:])))
         elif args[0] == 'prod':
             await ctx.send(eval('*'.join(args[1:])))
-        else
+        else:
             await ctx.send(eval(' '.join(args)))
 
     @commands.command(brief='Command to ban users from accessing the bot')
