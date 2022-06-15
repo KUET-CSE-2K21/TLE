@@ -24,7 +24,7 @@ import io
 _GITGUD_NO_SKIP_TIME = 2 * 60 * 60
 _GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23, 23, 23)
 _GITGUD_MAX_NEG_DELTA_VALUE = -300
-_GITGUD_MAX_POS_DELTA_VALUE = 500
+_GITGUD_MAX_POS_DELTA_VALUE = 300
 
 def rating_to_color(rating):
     """returns (r, g, b) pixels values corresponding to rating"""
@@ -145,8 +145,8 @@ class Codeforces(commands.Cog):
     @cf_common.user_guard(group='gitgud')
     async def upsolve(self, ctx, choice: int = -1):
         """Request an unsolved problem from a contest you participated in
-        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 | +400 | +500
-        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |  23  |  23
+        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 |
+        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |
         """
         await self._validate_gitgud_status(ctx,delta=None)
         handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
@@ -384,8 +384,8 @@ class Codeforces(commands.Cog):
     @cf_common.user_guard(group='gitgud')
     async def gitgud(self, ctx, delta: int = 0):
         """Request a problem for gitgud points.
-        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 | +400 | +500
-        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |  23  |  23
+        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 |
+        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |
         """
         await self._validate_gitgud_status(ctx, delta)
         handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
