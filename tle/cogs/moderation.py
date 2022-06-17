@@ -1,3 +1,8 @@
+import os
+import subprocess
+import sys
+import time
+import textwrap
 import logging
 import json
 import discord
@@ -12,6 +17,8 @@ from tle.cogs.handles import HandleCogError
 from tle.cogs.handles import CODECHEF_RATED_RANKS
 from tle.util.codeforces_api import RATED_RANKS as CODEFORCES_RATED_RANKS
 from discord.ext import commands
+from tle.util.codeforces_common import pretty_time_format
+from tle.util import clist_api
 
 async def _create_roles(ctx, ranks):
     for rank in ranks[::-1]:
@@ -21,6 +28,7 @@ async def _create_roles(ctx, ranks):
 class Moderator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.start_time = time.time()
         self.logger = logging.getLogger(self.__class__.__name__)
         self.converter = commands.MemberConverter()
 
@@ -28,6 +36,82 @@ class Moderator(commands.Cog):
     @discord_common.once
     async def on_ready(self):
         pass
+
+    @commands.group(brief='Bot control', invoke_without_command=True)
+    async def meta(self, ctx):
+        """Command the bot or get information about the bot."""
+        await ctx.send_help(ctx.command)
+
+    @meta.command(brief='Restarts TLE')
+    @commands.is_owner()
+    async def restart(self, ctx):
+        """Restarts the bot."""
+        await ctx.send('TLE is restarting :arrows_clockwise:')
+        os._exit(42)
+
+    @meta.command(brief='Kill TLE')
+    @commands.is_owner()
+    async def kill(self, ctx):
+        """Restarts the bot."""
+        await ctx.send('TLE has been slained :skull:')
+        os._exit(0)
+
+    @meta.command(brief='Is TLE up?')
+    async def ping(self, ctx):
+        """Replies to a ping."""
+        start = time.perf_counter()
+        message = await ctx.send(':ping_pong: Pong!')
+        end = time.perf_counter()
+        duration = (end - start) * 1000
+        await message.edit(content=f'REST API latency: {int(duration)}ms\n'
+                                   f'Gateway API latency: {int(self.bot.latency * 1000)}ms')
+
+    @meta.command(brief='Prints bot uptime')
+    async def uptime(self, ctx):
+        """Replies with how long TLE has been up."""
+        await ctx.send('TLE has been running for ' +
+                       pretty_time_format(time.time() - self.start_time))
+
+    @meta.command(brief='Print bot guilds')
+    @commands.is_owner()
+    async def guilds(self, ctx):
+        "Replies with info on the bot's guilds"
+        await ctx.send('I\'m in ' + str(len(self.bot.guilds)) + ' servers!')
+        # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
+        msg = []
+
+        glen = 0
+        for guild in self.bot.guilds:
+            glen = max(glen, len(guild.name))
+        glen = min(glen, 34)
+
+        for guild in self.bot.guilds:
+            guildname = guild.name
+            if len(guildname) > glen:
+                guildname = guildname[:glen - 3] + '...'
+            else:
+                guildname = guildname + (glen - len(guildname))*' '
+
+            ownername = guild.owner.name
+            if len(ownername) > glen:
+                ownername = ownername[:glen - 3] + '...'
+            else:
+                ownername = ownername + (glen - len(ownername))*' '
+
+            msg.append(f'Name: {guildname} | Owner: {ownername}')
+        await ctx.send('```' + '\n'.join(msg) + '```')
+    
+    @meta.command(brief='Forcefully reset contests')
+    @commands.is_owner()
+    async def resetcache(self, ctx):
+        "Resets contest cache."
+        try:
+            clist_api.cache(True)
+            await ctx.send('```Cache reset completed. '
+                           'Restart to reschedule all contest reminders.'
+                           '```')
+        except BaseException:
+            await ctx.send('```' + 'Cache reset failed.' + '```')
 
     @commands.command(brief='(unofficial) Calculate a math expression', usage='[expression]')
     @commands.is_owner()
