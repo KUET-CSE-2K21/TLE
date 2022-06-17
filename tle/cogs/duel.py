@@ -108,7 +108,7 @@ class Dueling(commands.Cog):
         await ctx.send_help(ctx.command)
 
     @duel.command(brief='Register a duelist')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def register(self, ctx, member: discord.Member):
         """Register a duelist"""
         rc = cf_common.user_db.register_duelist(member.id)
@@ -432,30 +432,6 @@ class Dueling(commands.Cog):
 
         return [make_page(chunk) for chunk in paginator.chunkify(data, 7)]
 
-    @duel.command(brief='Print head to head dueling history',
-                  aliases=['versushistory'])
-    async def vshistory(self, ctx, member1: discord.Member = None, member2: discord.Member = None):
-        if not member1:
-            raise DuelCogError(
-                f'You need to specify one or two discord members.')
-
-        member2 = member2 or ctx.author
-        data = cf_common.user_db.get_pair_duels(member1.id, member2.id)
-        w, l, d = 0, 0, 0
-        for _, _, _, _, challenger, challengee, winner in data:
-            if winner != Winner.DRAW:
-                winnerid = challenger if winner == Winner.CHALLENGER else challengee
-                if winnerid == member1.id:
-                    w += 1
-                else:
-                    l += 1
-            else:
-                d += 1
-        pages = self._paginate_duels(
-            data, f'{member1.display_name} ({w}/{d}/{l}) {member2.display_name}', ctx.guild.id, False)
-        paginator.paginate(self.bot, ctx.channel, pages,
-                           wait_time=5 * 60, set_pagenum_footers=True)
-
     @duel.command(brief='Print user dueling history')
     async def history(self, ctx, member: discord.Member = None):
         member = member or ctx.author
@@ -549,7 +525,7 @@ class Dueling(commands.Cog):
     @duel.command(brief='Invalidate the duel')
     async def invalidate(self, ctx):
         """Declare your duel invalid. Use this if you've solved the problem prior to the duel.
-        You can only use this functionality during the first 60 seconds of the duel."""
+        You can only use this functionality during the first 120 seconds of the duel."""
         active = cf_common.user_db.check_duel_complete(ctx.author.id)
         if not active:
             raise DuelCogError(f'{ctx.author.mention}, you are not in a duel.')
@@ -561,7 +537,7 @@ class Dueling(commands.Cog):
         await self.invalidate_duel(ctx, duelid, challenger_id, challengee_id)
 
     @duel.command(brief='Invalidate a duel', usage='[duelist]')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def _invalidate(self, ctx, member: discord.Member):
         """Declare an ongoing duel invalid."""
         active = cf_common.user_db.check_duel_complete(member.id)

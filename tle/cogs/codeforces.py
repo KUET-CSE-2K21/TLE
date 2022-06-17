@@ -21,7 +21,7 @@ from PIL import Image, ImageFont, ImageDraw
 import io
 
 
-_GITGUD_NO_SKIP_TIME = 2 * 60 * 60
+_GITGUD_NO_SKIP_TIME = 1 * 60 * 60
 _GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23, 23, 23)
 _GITGUD_MAX_NEG_DELTA_VALUE = -300
 _GITGUD_MAX_POS_DELTA_VALUE = 300
@@ -415,40 +415,6 @@ class Codeforces(commands.Cog):
         choice = max(random.randrange(len(problems)) for _ in range(2))
         await self._gitgud(ctx, handle, problems[choice], delta)
 
-    @commands.command(brief='Print user gitgud history')
-    async def gitlog(self, ctx, member: discord.Member = None):
-        """Displays the list of gitgud problems issued to the specified member, excluding those noguded by admins.
-        If the challenge was completed, time of completion and amount of points gained will also be displayed.
-        """
-        def make_line(entry):
-            issue, finish, name, contest, index, delta, status = entry
-            problem = cf_common.cache2.problem_cache.problem_by_name[name]
-            line = f'[{name}]({problem.url})\N{EN SPACE}[{problem.rating}]'
-            if finish:
-                time_str = cf_common.days_ago(finish)
-                points = f'{_GITGUD_SCORE_DISTRIB[delta // 100 + 3]:+}'
-                line += f'\N{EN SPACE}{time_str}\N{EN SPACE}[{points}]'
-            return line
-
-        def make_page(chunk,score):
-            message = f'Gitgud log for {member.display_name} (total score: {score})'
-            log_str = '\n'.join(make_line(entry) for entry in chunk)
-            embed = discord_common.cf_color_embed(description=log_str)
-            return message, embed
-
-        member = member or ctx.author
-        data = cf_common.user_db.gitlog(member.id)
-        if not data:
-            raise CodeforcesCogError(f'{member.mention} has no gitgud history.')
-        score = 0
-        for entry in data:
-            issue, finish, name, contest, index, delta, status = entry
-            if finish:
-                score+=_GITGUD_SCORE_DISTRIB[delta // 100 + 3]
-
-        pages = [make_page(chunk, score) for chunk in paginator.chunkify(data, 7)]
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
-
     @commands.command(brief='Report challenge completion')
     @cf_common.user_guard(group='gitgud')
     async def gotgud(self, ctx):
@@ -494,7 +460,7 @@ class Codeforces(commands.Cog):
 
     @commands.command(brief='Force skip a challenge')
     @cf_common.user_guard(group='gitgud')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def _nogud(self, ctx, member: discord.Member):
         active = cf_common.user_db.check_challenge(member.id)
         rc = cf_common.user_db.skip_challenge(member.id, active[0], Gitgud.FORCED_NOGUD)

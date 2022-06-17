@@ -51,23 +51,24 @@ class Moderator(commands.Cog):
             await ctx.send('Invalid math expression. Please try again!')
 
     @commands.command(brief='Command to ban users from accessing the bot')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def ban(self, ctx, member: discord.Member):
         cf_common.user_db.ban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" banned from TLE!!!```")
     
     @commands.command(brief='Command to unban users')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unban(self, ctx, member: discord.Member):
         cf_common.user_db.unban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" unbanned!!! ```")
     
     @commands.group(brief='Command to create roles for codeforces/codechef', invoke_without_command=True)
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def createroles(self, ctx):
         await ctx.send_help(ctx.command)
     
     @createroles.command(brief='Create roles for codeforces ranks')
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def codeforces(self, ctx):
         wait_msg = await ctx.channel.send("Creating Roles...")
         await _create_roles(ctx, CODEFORCES_RATED_RANKS)
@@ -75,6 +76,7 @@ class Moderator(commands.Cog):
         await ctx.send(embed=discord_common.embed_success('Roles created successfully.'))
 
     @createroles.command(brief='Create roles for codechef stars')
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def codechef(self, ctx):
         wait_msg = await ctx.channel.send("Creating Roles...")
         await _create_roles(ctx, CODECHEF_RATED_RANKS)

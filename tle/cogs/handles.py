@@ -443,7 +443,7 @@ class Handles(commands.Cog):
             await member.add_roles(role_to_assign, reason=reason)
 
     @handle.command(brief='Set Codeforces handle of a user', usage="@member [website]:[handle]")
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def set(self, ctx, member: discord.Member, handle: str):
         """Set codeforces/codechef/atcoder/google handle of a user.
 
@@ -479,18 +479,6 @@ class Handles(commands.Cog):
             await self._set(ctx, member, user)
         await self.get(ctx, member, settingHandle=True)
     
-    @handle.command(brief='Resolve handles of other sites using codeforces handles')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
-    async def sync_all(self, ctx):
-        guild = ctx.guild
-        for member in guild.members:
-                handle = cf_common.user_db.get_handle(member.id, guild.id)
-                if handle:
-                    try:
-                        await self.set(ctx, member, "all:"+str(handle))
-                    except clist.HandleNotFoundError:
-                        pass            
-
     async def _set_account_id(self, member_id, guild, user):
         try:
             guild_id = guild.id
@@ -624,7 +612,7 @@ class Handles(commands.Cog):
         await ctx.send(embed=embed)
 
     @handle.command(brief='Remove handle for a user')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def remove(self, ctx, member: discord.Member):
         """Remove Codeforces handle of a user (+ @user)."""
         rc = cf_common.user_db.remove_handle(member.id, ctx.guild.id)
@@ -637,8 +625,8 @@ class Handles(commands.Cog):
         await ctx.send(embed=embed)
 
     @handle.command(brief='Remove handle for a user')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
-    async def removebyid(self, ctx, member_id:int):
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    async def removeid(self, ctx, member_id:int):
         """Remove Codeforces handle of a user (+ user id)."""
         rc = cf_common.user_db.remove_handle(member_id, ctx.guild.id)
         member = ctx.guild.get_member(member_id)
@@ -661,7 +649,7 @@ class Handles(commands.Cog):
         await self._unmagic_handles(ctx, [handle], {handle: member})
 
     @handle.command(brief='Resolve handles needing redirection')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unmagic_all(self, ctx):
         """Updates handles of all users that have changed handles
         (typically new year's magic)"""
@@ -1015,13 +1003,13 @@ class Handles(commands.Cog):
 
     @commands.group(brief='Commands for role updates',
                     invoke_without_command=True)
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def roleupdate(self, ctx):
         """Group for commands involving role updates."""
         await ctx.send_help(ctx.command)
     
     @roleupdate.command(brief='Update CodeChef star roles')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def codechef(self, ctx):
         wait_msg = await ctx.channel.send("Updating codechef stars...")
         await self._update_stars_all(ctx.guild)
@@ -1029,7 +1017,7 @@ class Handles(commands.Cog):
         await ctx.send(embed=discord_common.embed_success('Roles updated successfully.'))
 
     @roleupdate.command(brief='Update Codeforces rank roles')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def now(self, ctx):
         """Updates Codeforces rank roles for every member in this server."""
         await self._update_ranks_all(ctx.guild)
@@ -1037,7 +1025,7 @@ class Handles(commands.Cog):
 
     @roleupdate.command(brief='Enable or disable auto role updates',
                         usage='on|off')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def auto(self, ctx, arg):
         """Auto role update refers to automatic updating of rank roles when rating
         changes are released on Codeforces. 'on'/'off' disables or enables auto role
@@ -1058,7 +1046,7 @@ class Handles(commands.Cog):
 
     @roleupdate.command(brief='Publish a rank update for the given contest',
                         usage='here|off|contest_id')
-    @commands.check_any(commands.has_any_role('Admin', constants.TLE_MODERATOR), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def publish(self, ctx, arg):
         """This is a feature to publish a summary of rank changes and top rating
         increases in a particular contest for members of this server. 'here' will
