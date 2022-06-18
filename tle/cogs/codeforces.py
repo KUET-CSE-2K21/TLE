@@ -600,8 +600,8 @@ class Codeforces(commands.Cog):
         pages = [make_page(chunk) for chunk in paginator.chunkify(contests, 5)]
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
 
-        @commands.group(brief='Challenge your friend to a duel',
-                    invoke_without_command=True)
+    @commands.group(brief='Challenge your friend to a duel',
+                invoke_without_command=True)
     async def duel(self, ctx):
         """Group for commands pertaining to duels"""
         await ctx.send_help(ctx.command)
