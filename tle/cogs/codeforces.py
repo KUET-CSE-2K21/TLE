@@ -23,7 +23,6 @@ from tle.util import graph_common as gc
 from tle.util import cache_system2
 
 from PIL import Image, ImageFont, ImageDraw
-import io
 
 _GITGUD_NO_SKIP_TIME = 1 * 60 * 60
 _GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23, 23, 23)
@@ -56,55 +55,6 @@ def rating_to_color(rating):
     if rating < 2400:
         return ORANGE
     return RED
-
-def get_leaderboard_image(rows, font):
-    """return PIL image for rankings"""
-    SMOKE_WHITE = (250, 250, 250)
-    BLACK = (0, 0, 0)
-    img = Image.new('RGB', (900, 450), color=SMOKE_WHITE)
-    draw = ImageDraw.Draw(img)
-
-    START_X, START_Y = 20, 20
-    Y_INC = 32
-    WIDTH_RANK = 64
-    WIDTH_NAME = 340
-
-    def draw_row(pos, username, handle, rating, color, y):
-        x = START_X
-        draw.text((x, y), pos, fill=color, font=font)
-        x += WIDTH_RANK
-        draw.text((x, y), username, fill=color, font=font)
-        x += WIDTH_NAME
-        draw.text((x, y), handle, fill=color, font=font)
-        x += WIDTH_NAME
-        draw.text((x, y), rating, fill=color, font=font)
-
-    y = START_Y
-    # draw header
-    draw_row('#', 'Username', 'Problems (Rating)', 'Points', BLACK, y)
-    y += int(Y_INC * 1.5)
-
-    # trim name to fit in the column width
-    def _trim(name):
-        width = WIDTH_NAME - 10
-        while font.getsize(name)[0] > width:
-            name = name[:-4] + '...'  # "…" is printed as floating dots
-        return name
-
-    for pos, name, handle, rating, points in rows:
-        name = _trim(name)
-        handle = _trim(handle)
-        color = rating_to_color(rating)
-        draw_row(str(pos), name, handle, str(points) if points else 'N/A', color, y)
-        if rating and rating >= 3000:  # nutella
-            nutella_x = START_X + WIDTH_RANK
-            draw.text((nutella_x, y), name[0], fill=BLACK, font=font)
-            nutella_x += WIDTH_NAME
-            draw.text((nutella_x, y), handle[0], fill=BLACK, font=font)
-        y += Y_INC
-
-    return img
-
 
 class CodeforcesCogError(commands.CommandError):
     pass
@@ -301,99 +251,6 @@ class Codeforces(commands.Cog):
             tagslist = ', '.join(problem.tag_matches(tags))
             embed.add_field(name='Matched tags', value=tagslist)
         await ctx.send(f'Recommended problem for `{handle}`', embed=embed)
-
-    @commands.command(brief='List solved problems',
-                      usage='[handles] [+hardest] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [c+marker..] [i+index..]')
-    async def stalk(self, ctx, *args):
-        """Print problems solved by user sorted by time (default) or rating.
-        All submission types are included by default (practice, contest, etc.)
-        """
-        (hardest,), args = cf_common.filter_flags(args, ['+hardest'])
-        filt = cf_common.SubFilter(False)
-        args = filt.parse(args)
-        handles = args or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.converter, handles)
-        submissions = [await cf.user.status(handle=handle) for handle in handles]
-        submissions = [sub for subs in submissions for sub in subs]
-        submissions = filt.filter_subs(submissions)
-
-        if not submissions:
-            raise CodeforcesCogError('Submissions not found within the search parameters')
-
-        if hardest:
-            submissions.sort(key=lambda sub: (sub.problem.rating or 0, sub.creationTimeSeconds), reverse=True)
-        else:
-            submissions.sort(key=lambda sub: sub.creationTimeSeconds, reverse=True)
-
-        def make_line(sub):
-            data = (f'[{sub.problem.name}]({sub.problem.url})',
-                    f'[{sub.problem.rating if sub.problem.rating else "?"}]',
-                    f'({cf_common.days_ago(sub.creationTimeSeconds)})')
-            return '\N{EN SPACE}'.join(data)
-
-        def make_page(chunk):
-            title = '{} solved problems by `{}`'.format('Hardest' if hardest else 'Recently',
-                                                        '`, `'.join(handles))
-            hist_str = '\n'.join(make_line(sub) for sub in chunk)
-            embed = discord_common.cf_color_embed(description=hist_str)
-            return title, embed
-
-        pages = [make_page(chunk) for chunk in paginator.chunkify(submissions[:100], 10)]
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
-    
-
-    @commands.command(brief='See weekly leaderboard',usage='')
-    async def leaderboard(self, ctx, *args):
-        handles = {handle for discord_id, handle
-                            in cf_common.user_db.get_handles_for_guild(ctx.guild.id)}
-        wait_msg = await ctx.channel.send('Loading leaderboard, please wait...')
-        date = datetime.datetime.now()-datetime.timedelta(days=7)
-        filt = cf_common.SubFilter(False)
-        filt.parse('');
-        filt.dlo = date.timestamp()
-        rows = []
-        i = 1
-        for handle in handles:
-            user = cf_common.user_db.fetch_cf_user(handle)
-            submissions = await cf.user.status(handle=handle)
-            submissions = filt.filter_subs(submissions)
-            points = 0
-            problemCount = 0
-            averageRating = 0
-            for submission in submissions:
-                if submission.problem.rating is None:
-                    continue
-                problemCount += 1
-                averageRating += submission.problem.rating
-                points += (submission.problem.rating//100)-7
-            if points > 5:
-                averageRating /= problemCount
-                mod = averageRating%100
-                averageRating = (averageRating//100)*100
-                averageRating += 100 if mod>50 else 0 
-                rows.append([i, user.handle, str(problemCount)+" ("+str(int(averageRating))+")", user.rating, points])
-            i += 1
-        rows.sort(key=lambda row: row[4], reverse=True)
-        for i in range(len(rows)):
-            row = rows[i]
-            row[0] = i+1 
-            rows[i] = tuple(row)
-        i = 0
-        await wait_msg.delete()
-        page = 1
-        while i<len(rows):
-            rows_to_display = rows[i : min(i+10, len(rows))]
-            img = get_leaderboard_image(rows_to_display, self.font)
-            buffer = io.BytesIO()
-            img.save(buffer, 'png')
-            buffer.seek(0)
-            msg = "Weekly Leaderboard" if i==0 else None
-            await ctx.send(msg, file=discord.File(buffer, 'leaderboard_p'+str(page)+'.png'))   
-            page+=1
-            i+=10
-            if page==3:
-                break
-
 
     @commands.command(brief='Create a mashup', usage='[handles] [+tags] [?[-]delta]')
     async def mashup(self, ctx, *args):
