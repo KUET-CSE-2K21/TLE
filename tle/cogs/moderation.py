@@ -101,10 +101,10 @@ class Moderator(commands.Cog):
             msg.append(f'Name: {guildname} | Owner: {ownername}')
         await ctx.send('```' + '\n'.join(msg) + '```')
     
-    @meta.command(brief='Forcefully reset contests')
+    @meta.command(brief='Reset contest cache')
     @commands.is_owner()
     async def resetcache(self, ctx):
-        "Resets contest cache."
+        "Reset contest cache."
         try:
             clist_api.cache(True)
             await ctx.send('```Cache reset completed. '
@@ -113,7 +113,7 @@ class Moderator(commands.Cog):
         except BaseException:
             await ctx.send('```' + 'Cache reset failed.' + '```')
 
-    @commands.command(brief='(unofficial) Calculate a math expression', usage='[expression]')
+    @commands.command(brief='(unofficial) Calculate math expressions', usage='[expression]')
     @commands.is_owner()
     async def calc(self, ctx, *args):
         """Calculate a math expression (in python format).
@@ -134,19 +134,19 @@ class Moderator(commands.Cog):
         except SyntaxError as e:
             await ctx.send('Invalid math expression. Please try again!')
 
-    @commands.command(brief='Command to ban users from accessing the bot')
+    @commands.command(brief='Ban users from accessing the bot')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def ban(self, ctx, member: discord.Member):
         cf_common.user_db.ban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" banned from TLE!!!```")
     
-    @commands.command(brief='Command to unban users')
+    @commands.command(brief='Unban users from accessing the bot')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unban(self, ctx, member: discord.Member):
         cf_common.user_db.unban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" unbanned!!! ```")
     
-    @commands.group(brief='Command to create roles for codeforces/codechef', invoke_without_command=True)
+    @commands.group(brief='Create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def createroles(self, ctx):
         await ctx.send_help(ctx.command)
