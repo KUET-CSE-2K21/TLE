@@ -319,7 +319,7 @@ class Reminders(commands.Cog):
         await ctx.send_help(ctx.command)
 
     @remind.command(brief='Set reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def here(self, ctx, role: discord.Role, *before: int):
         """Sets reminder channel to current channel,
         role to the given role, and reminder
@@ -347,7 +347,7 @@ class Reminders(commands.Cog):
         self._reschedule_tasks(ctx.guild.id)
 
     @remind.command(brief='Set reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def inchannel(self, ctx, channel:discord.TextChannel, role: discord.Role, *before: int):
         """Sets reminder channel to current channel,
         role to the given role, and reminder
@@ -376,7 +376,7 @@ class Reminders(commands.Cog):
 
 
     @remind.command(brief='Resets the judges settings to the default ones')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def reset(self, ctx):
         """ Resets the judges settings to the default ones.
         """
@@ -404,7 +404,7 @@ class Reminders(commands.Cog):
         self._reschedule_tasks(ctx.guild.id)
 
     @remind.command(brief='Show reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def settings(self, ctx):
         """Shows the reminders role, channel, times, and timezone settings."""
         # load settings
@@ -523,7 +523,7 @@ class Reminders(commands.Cog):
         return supported_websites, unsupported_websites
 
     @remind.command(brief='Start contest reminders from websites.')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def subscribe(self, ctx, *websites: str):
         """Start contest reminders from websites."""
 
@@ -548,7 +548,7 @@ class Reminders(commands.Cog):
         await ctx.send(embed=embed)
 
     @remind.command(brief='Stop contest reminders from websites.')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def unsubscribe(self, ctx, *websites: str):
         """Stop contest reminders from websites."""
 
@@ -573,7 +573,7 @@ class Reminders(commands.Cog):
         await ctx.send(embed=embed)
 
     @remind.command(brief='Clear all reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def clear(self, ctx):
         cf_common.user_db.clear_reminder_settings(ctx.guild.id)
         await ctx.send(embed=discord_common.embed_success('Reminder settings cleared'))
@@ -581,7 +581,7 @@ class Reminders(commands.Cog):
 
     @commands.command(brief='Set the server\'s timezone',
                       usage=' <timezone>')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def settz(self, ctx, timezone: str):
         """Sets the server's timezone to the given timezone.
         """
