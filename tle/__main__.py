@@ -5,6 +5,7 @@ import logging
 import os
 import base64
 import discord
+
 from logging.handlers import TimedRotatingFileHandler
 from os import environ
 from pathlib import Path
@@ -24,6 +25,7 @@ if STORAGE_BUCKET!='None':
     bucket = storage.bucket()
 
 import seaborn as sns
+from discord.ext import tasks
 from discord.ext import commands
 from matplotlib import pyplot as plt
 
@@ -115,6 +117,19 @@ def main():
         clist_api.cache()
         await cf_common.initialize(args.nodb)
         asyncio.create_task(discord_common.presence(bot))
+
+    bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
+
+    @tasks.loop(minutes=30)
+    async def update_stats():
+        """This function runs every 30 minutes to automatically update your server count."""
+        try:
+            await bot.topggpy.post_guild_count()
+            logging.info(f"Posted server count ({bot.topggpy.guild_count})")
+        except Exception as e:
+            logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
+
+    update_stats.start()
 
     bot.add_listener(discord_common.bot_error_handler, name='on_command_error')
     bot.run(token)
