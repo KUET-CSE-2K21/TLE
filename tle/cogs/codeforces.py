@@ -307,7 +307,7 @@ class Codeforces(commands.Cog):
         embed = discord_common.cf_color_embed(description=msg)
         await ctx.send(f'Mashup contest for `{str_handles}`', embed=embed)
 
-    @commands.command(brief='Challenge yourself and earn points')
+    @commands.command(brief='Challenge')
     @cf_common.user_guard(group='gitgud')
     async def gitgud(self, ctx, delta: int = 0):
         """Request a problem for gitgud points.
@@ -457,7 +457,7 @@ class Codeforces(commands.Cog):
         pages = [make_page(chunk) for chunk in paginator.chunkify(contests, 5)]
         paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
 
-    @commands.group(brief='Compete coding with your friend',
+    @commands.group(brief='Challenge your friend to a duel',
                 invoke_without_command=True)
     async def duel(self, ctx):
         """Group for commands pertaining to duels"""
