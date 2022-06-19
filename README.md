@@ -29,5 +29,4 @@ TLE is a Discord bot centered around Competitive Programming.
 8. Paste ID of a Discord Channel where you will want the bot to log in "LOGGING_COG_CHANNEL_ID"
 9. Paste in Storage Bucket URL in "STORAGE_BUCKET"
 10. Set "ALLOW_DUEL_SELF_REGISTER" to true/false
-11. Set "TLE_MODERATOR" to Moderator or any Role Name
-12. Navigate to Resources and turn on the Dyno
+11. Navigate to Resources and turn on the Dyno
