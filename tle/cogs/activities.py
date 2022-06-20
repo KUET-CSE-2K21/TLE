@@ -385,6 +385,7 @@ class Activity(commands.Cog):
         self.start_time_map = defaultdict(list)
         self.task_map = defaultdict(list)
 
+        self.font = ImageFont.truetype(constants.NOTO_SANS_CJK_BOLD_FONT_PATH, size=26)
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @commands.Cog.listener()
