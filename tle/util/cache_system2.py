@@ -359,7 +359,7 @@ class ProblemsetCache:
 
 
 class RatingChangesCache:
-    _RATED_DELAY = 15 * 60
+    _RATED_DELAY = 36 * 60 * 60
     _RELOAD_DELAY = 10 * 60
 
     def __init__(self, cache_master):
