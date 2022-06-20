@@ -1023,8 +1023,7 @@ class Handles(commands.Cog):
         await self._update_ranks_all(ctx.guild)
         await ctx.send(embed=discord_common.embed_success('Roles updated successfully.'))
 
-    @roleupdate.command(brief='Enable or disable auto role updates',
-                        usage='on|off')
+    @roleupdate.command(brief='Enable or disable auto role updates', usage='on|off')
     @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
     async def auto(self, ctx, arg):
         """Auto role update refers to automatic updating of rank roles when rating
