@@ -29,33 +29,6 @@ _GITGUD_SCORE_DISTRIB = (2, 3, 5, 8, 12, 17, 23, 23, 23)
 _GITGUD_MAX_NEG_DELTA_VALUE = -300
 _GITGUD_MAX_POS_DELTA_VALUE = 300
 
-def rating_to_color(rating):
-    """returns (r, g, b) pixels values corresponding to rating"""
-    # TODO: Integrate these colors with the ranks in codeforces_api.py
-    BLACK = (10, 10, 10)
-    RED = (255, 20, 20)
-    BLUE = (0, 0, 200)
-    GREEN = (0, 140, 0)
-    ORANGE = (250, 140, 30)
-    PURPLE = (160, 0, 120)
-    CYAN = (0, 165, 170)
-    GREY = (70, 70, 70)
-    if rating is None or rating=='N/A':
-        return BLACK
-    if rating < 1200:
-        return GREY
-    if rating < 1400:
-        return GREEN
-    if rating < 1600:
-        return CYAN
-    if rating < 1900:
-        return BLUE
-    if rating < 2100:
-        return PURPLE
-    if rating < 2400:
-        return ORANGE
-    return RED
-
 class CodeforcesCogError(commands.CommandError):
     pass
 
@@ -129,7 +102,6 @@ def check_if_allow_self_register(ctx):
 class Codeforces(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.font = ImageFont.truetype(constants.NOTO_SANS_CJK_BOLD_FONT_PATH, size=26)
         self.converter = commands.MemberConverter()
 
     async def _validate_gitgud_status(self, ctx, delta):
