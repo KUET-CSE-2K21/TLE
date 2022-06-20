@@ -402,7 +402,7 @@ class Activity(commands.Cog):
         filt = cf_common.SubFilter(False)
         args = filt.parse(args)
         handles = args or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.converter, handles)
+        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
         submissions = [await cf.user.status(handle=handle) for handle in handles]
         submissions = [sub for subs in submissions for sub in subs]
         submissions = filt.filter_subs(submissions)
