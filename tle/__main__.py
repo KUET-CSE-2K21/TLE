@@ -121,9 +121,9 @@ def main():
 
     bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(minutes=5)
     async def update_stats():
-        """This function runs every 30 minutes to automatically update your server count."""
+        """This function runs every 5 minutes to automatically update your server count."""
         try:
             await bot.topggpy.post_guild_count()
             logging.info(f"Posted server count ({bot.topggpy.guild_count})")
