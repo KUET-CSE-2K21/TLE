@@ -2,7 +2,7 @@
 
 TLE is a Discord bot centered around Competitive Programming.
 
-## Feature
+## Main features
 
 ✔️ Recommend problems (can be given rating and tags).
 
@@ -22,7 +22,7 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ✔️ Update members' role after finished contests.
 
-## Upcomming feature
+## Upcomming features
 
 ⌛ Add guildlines for admin about bot setup.
 
