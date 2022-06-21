@@ -24,6 +24,10 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ## Upcomming feature
 
+⌛ Add guildlines for admin about bot setup.
+
+⌛ Remade help panel (include personal support).
+
 ⌛ Ultra-precise calculator (with some maths function).
 
 ## Known bugs
