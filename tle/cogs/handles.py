@@ -487,7 +487,7 @@ class Handles(commands.Cog):
                 roletitle = rating2star(user['rating']).title
                 roles = [role for role in ctx.guild.roles if role.name == roletitle]
                 if not roles:
-                    await ctx.send(f'Role for `{roletitle}` is not present in the server\nNote: If you have Administrator permission you can type `;createroles codechef` to automatically create roles for Codechef users.')
+                    await ctx.send(f'Role for `{roletitle}` is not present in the server.\n`Note: If you have Administrator permission you can type ";createroles codechef" to automatically create roles for Codechef users, then type ";roleupdate now" to apply changes.`')
                 else:
                     await self.update_member_star_role(ctx.guild.get_member(member_id),roles[0] ,reason='CodeChef Account Set')
         except db.UniqueConstraintFailed:
@@ -507,7 +507,7 @@ class Handles(commands.Cog):
         else:
             roles = [role for role in ctx.guild.roles if role.name == user.rank.title]
             if not roles:
-                await ctx.send(f'Role for rank `{user.rank.title}` is not present in the server\nNote: If you have Administrator permission you can type `;createroles codeforces` to automatically create roles for Codeforces users.')
+                await ctx.send(f'Role for rank `{user.rank.title}` is not present in the server.\n`Note: If you have Administrator permission you can type ";createroles codeforces" to automatically create roles for Codeforces users, then type ";roleupdate now" to apply changes.`')
                 role_to_assign = None
             else:
                 role_to_assign = roles[0]
@@ -771,7 +771,7 @@ class Handles(commands.Cog):
         if not users:
             raise HandleCogError('No members with registered handles.')
 
-        users.sort(key=lambda x: (1 if x[2] is None else -x[2], -x[3],x[1]))  # Sorting by (-rating,-contests, handle)
+        users.sort(key=lambda x: (1 if x[2] is None else -x[2], -x[3], x[1]))  # Sorting by (-rating,-contests, handle)
         title = f'Handles of server members ({resource_name(resource)})'
         if countries:
             title += ' from ' + ', '.join(f'`{country}`' for country in countries)

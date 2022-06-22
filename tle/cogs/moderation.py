@@ -41,14 +41,14 @@ def _make_pages(guilds, title):
     style = table.Style('{:>} {:<} {:<}')
     for chunk in chunks:
         t = table.Table(style)
-        t += table.Header('#', 'Server', 'Owner')
+        t += table.Header('#', 'Owner', 'Server')
         t += table.Line()
         for i, (name, owner) in enumerate(chunk):
             if len(name) > _NAME_MAX_LEN:
                 name = name[:_NAME_MAX_LEN - 1] + '…'
             if len(owner) > _OWNER_MAX_LEN:
                 owner = owner[:_OWNER_MAX_LEN - 1] + '…'
-            t += table.Data(i + done, name, owner)
+            t += table.Data(i + done, owner, name)
         table_str = '```\n'+str(t)+'\n```'
         embed = discord_common.cf_color_embed(description=table_str)
         pages.append((title, embed))

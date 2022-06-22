@@ -22,6 +22,8 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ✔️ Update members' role after finished contests.
 
+✔️ Automatically create codeforces/codechef roles.
+
 ## Upcomming features
 
 ⌛ Add guildlines for admin about bot setup.
