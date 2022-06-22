@@ -32,8 +32,10 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ⌛ Add bug report command.
 
+⌛ Add bot updates channel.
+
 ## Known bugs
 
 ❌ Repeated contest publish in publish channel.
 
-❌ `;plot centile` command is not working properly.
+✔️ [FIXED] `;plot centile` command is not working properly.

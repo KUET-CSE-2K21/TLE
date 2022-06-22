@@ -77,15 +77,18 @@ class Moderator(commands.Cog):
     async def guilds(self, ctx):
         "Replies with info on the bot's guilds"
         await ctx.send('I\'m in ' + str(len(self.bot.guilds)) + ' servers!')
-        # msg = [f'Guild ID: {guild.id} | Name: {guild.name} | Owner: {guild.owner.id} | Icon: {guild.icon_url}'
-        msg = []
 
         glen = 0
         for guild in self.bot.guilds:
             glen = max(glen, len(guild.name))
         glen = min(glen, 34)
 
+        msg = []
         for guild in self.bot.guilds:
+            if len(msg) == 10:
+                await ctx.send('```' + '\n'.join(msg) + '```')
+                msg = []
+            
             guildname = guild.name
             if len(guildname) > glen:
                 guildname = guildname[:glen - 3] + '...'
