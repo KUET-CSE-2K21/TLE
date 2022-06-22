@@ -472,23 +472,24 @@ class Handles(commands.Cog):
             for user in users:
                 if user['resource'] not in _SUPPORTED_CLIST_RESOURCES:
                     continue
-                await self._set_account_id(member.id, ctx.guild, user)
+                await self._set_account_id(member.id, ctx, user)
         else:
             # CF API returns correct handle ignoring case, update to it
             user, = await cf.user.info(handles=[handle])
             await self._set(ctx, member, user)
         await self.get(ctx, member, settingHandle=True)
     
-    async def _set_account_id(self, member_id, guild, user):
+    async def _set_account_id(self, member_id, ctx, user):
         try:
-            guild_id = guild.id
+            guild_id = ctx.guild.id
             cf_common.user_db.set_account_id(member_id, guild_id, user['id'], user['resource'], user['handle'])
             if user['resource']=='codechef.com':
                 roletitle = rating2star(user['rating']).title
-                roles = [role for role in guild.roles if role.name == roletitle]
+                roles = [role for role in ctx.guild.roles if role.name == roletitle]
                 if not roles:
-                    raise HandleCogError(f'Handle Linked, but failed to assign role for `{roletitle}` as the required role is not present in the server')
-                await self.update_member_star_role(guild.get_member(member_id),roles[0] ,reason='CodeChef Account Set')
+                    await ctx.send(f'Role for `{roletitle}` is not present in the server\nNote: If you have Administrator permission you can type `;createroles codechef` to automatically create roles for Codechef users.')
+                else:
+                    await self.update_member_star_role(ctx.guild.get_member(member_id),roles[0] ,reason='CodeChef Account Set')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
 
@@ -506,8 +507,10 @@ class Handles(commands.Cog):
         else:
             roles = [role for role in ctx.guild.roles if role.name == user.rank.title]
             if not roles:
-                raise HandleCogError(f'Role for rank `{user.rank.title}` not present in the server')
-            role_to_assign = roles[0]
+                await ctx.send(f'Role for rank `{user.rank.title}` is not present in the server\nNote: If you have Administrator permission you can type `;createroles codeforces` to automatically create roles for Codeforces users.')
+                role_to_assign = None
+            else:
+                role_to_assign = roles[0]
         await self.update_member_rank_role(member, role_to_assign,
                                            reason='New handle set for user')
 
