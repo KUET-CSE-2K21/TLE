@@ -6,9 +6,11 @@ import textwrap
 import logging
 import json
 import discord
-from discord.ext import commands
 
 from math import *
+from tle.util import table
+from tle.util import paginator
+from discord.ext import commands
 from tle.util import codeforces_common as cf_common
 from tle.util import codeforces_api as cf
 from tle import constants
@@ -20,10 +22,39 @@ from discord.ext import commands
 from tle.util.codeforces_common import pretty_time_format
 from tle.util import clist_api
 
+_PAGINATE_WAIT_TIME = 5 * 60  # 5 minutes
+_GUILDS_PER_PAGE = 10
+_NAME_MAX_LEN = 30
+_OWNER_MAX_LEN = 30
+
 async def _create_roles(ctx, ranks):
+    roles = [role.name for role in ctx.guild.roles]
     for rank in ranks[::-1]:
-        guild = ctx.guild
-        await guild.create_role(name=rank.title, colour=discord.Colour(rank.color_embed))
+        if rank.title not in roles:
+            await ctx.guild.create_role(name=rank.title, colour=discord.Colour(rank.color_embed))
+
+def _make_pages(guilds, title):
+    chunks = paginator.chunkify(guilds, _GUILDS_PER_PAGE)
+    pages = []
+    done = 1
+
+    style = table.Style('{:>} {:<} {:<}')
+    for chunk in chunks:
+        t = table.Table(style)
+        t += table.Header('#', 'Server', 'Owner')
+        t += table.Line()
+        for i, (name, owner) in enumerate(chunk):
+            if len(name) > _NAME_MAX_LEN:
+                name = name[:_NAME_MAX_LEN - 1] + '…'
+            if len(owner) > _OWNER_MAX_LEN:
+                owner = owner[:_OWNER_MAX_LEN - 1] + '…'
+            t += table.Data(i + done, name, owner)
+        table_str = '```\n'+str(t)+'\n```'
+        embed = discord_common.cf_color_embed(description=table_str)
+        pages.append((title, embed))
+        done += len(chunk)
+
+    return pages
 
 class Moderator(commands.Cog):
     def __init__(self, bot):
@@ -76,33 +107,13 @@ class Moderator(commands.Cog):
     @commands.is_owner()
     async def guilds(self, ctx):
         "Replies with info on the bot's guilds"
-        await ctx.send('I\'m in ' + str(len(self.bot.guilds)) + ' servers!')
+        guilds = [(guild.name, guild.owner.name) for guild in self.bot.guilds]
+        guilds.sort(key=lambda x: (x[1]))
+        title = f'I\'m in {len(guilds)} server!'
 
-        glen = 0
-        for guild in self.bot.guilds:
-            glen = max(glen, len(guild.name))
-        glen = min(glen, 34)
-
-        msg = []
-        for guild in self.bot.guilds:
-            if len(msg) == 10:
-                await ctx.send('```' + '\n'.join(msg) + '```')
-                msg = []
-            
-            guildname = guild.name
-            if len(guildname) > glen:
-                guildname = guildname[:glen - 3] + '...'
-            else:
-                guildname = guildname + (glen - len(guildname))*' '
-
-            ownername = guild.owner.name
-            if len(ownername) > glen:
-                ownername = ownername[:glen - 3] + '...'
-            else:
-                ownername = ownername + (glen - len(ownername))*' '
-
-            msg.append(f'Name: {guildname} | Owner: {ownername}')
-        await ctx.send('```' + '\n'.join(msg) + '```')
+        pages = _make_pages(guilds, title)
+        paginator.paginate(self.bot, ctx.channel, pages, wait_time=_PAGINATE_WAIT_TIME,
+                   set_pagenum_footers=True)
     
     @meta.command(brief='Reset contest cache')
     @commands.is_owner()
