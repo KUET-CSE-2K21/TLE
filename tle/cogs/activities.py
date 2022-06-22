@@ -1249,6 +1249,7 @@ class Activity(commands.Cog):
                                 title=title)
 
     @plot.command(brief='Show percentile distribution on codeforces', usage='[+zoom] [+nomarker] [handles...] [+exact]')
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def centile(self, ctx, *args: str):
         """Show percentile distribution of codeforces and mark given handles in the plot. If +zoom and handles are given, it zooms to the neighborhood of the handles."""
         (zoom, nomarker, exact), args = cf_common.filter_flags(args, ['+zoom', '+nomarker', '+exact'])
