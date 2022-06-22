@@ -359,7 +359,7 @@ class Codeforces(commands.Cog):
 
     @commands.command(brief='Force skip a challenge')
     @cf_common.user_guard(group='gitgud')
-    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def _nogud(self, ctx, member: discord.Member):
         active = cf_common.user_db.check_challenge(member.id)
         rc = cf_common.user_db.skip_challenge(member.id, active[0], Gitgud.FORCED_NOGUD)
@@ -436,7 +436,7 @@ class Codeforces(commands.Cog):
         await ctx.send_help(ctx.command)
 
     @duel.command(brief='Register a duelist')
-    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def register(self, ctx, member: discord.Member):
         """Register a duelist"""
         rc = cf_common.user_db.register_duelist(member.id)
@@ -865,7 +865,7 @@ class Codeforces(commands.Cog):
         await self.invalidate_duel(ctx, duelid, challenger_id, challengee_id)
 
     @duel.command(brief='Invalidate a duel', usage='[duelist]')
-    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def _invalidate(self, ctx, member: discord.Member):
         """Declare an ongoing duel invalid."""
         active = cf_common.user_db.check_duel_complete(member.id)

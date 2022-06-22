@@ -135,13 +135,13 @@ class Moderator(commands.Cog):
             await ctx.send('Invalid math expression. Please try again!')
 
     @commands.command(brief='Ban users from accessing the bot')
-    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def ban(self, ctx, member: discord.Member):
         cf_common.user_db.ban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" banned from TLE!!!```")
     
     @commands.command(brief='Unban users from accessing the bot')
-    @commands.check_any(commands.has_any_role('Admin', 'Moderator', 'Mod'), commands.is_owner())
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unban(self, ctx, member: discord.Member):
         cf_common.user_db.unban_user(member.id)
         return await ctx.send("```"+str(member.display_name)+" unbanned!!! ```")
