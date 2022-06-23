@@ -14,7 +14,7 @@ from tle.util import paginator
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
-_CONTESTS_PER_BATCH_IN_CACHE_UPDATES = 100
+_CONTESTS_PER_BATCH_IN_CACHE_UPDATES = 10
 CONTEST_BLACKLIST = {1308, 1309, 1431, 1432, 1522, 1531}
 
 def _is_blacklisted(contest):
