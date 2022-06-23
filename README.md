@@ -40,7 +40,7 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ❌ Repeated contest publish in publish channel.
 
-❌ `;plot centile` command is not working properly.
+✔️ [FIXED] `;plot centile` command is not working properly.
 
 ❌ `;handle list` is not working with specified countries.
 

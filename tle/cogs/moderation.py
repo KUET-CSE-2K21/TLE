@@ -40,6 +40,12 @@ async def _create_roles(ctx, ranks):
         if rank.title not in roles:
             await ctx.guild.create_role(name=rank.title, colour=discord.Colour(rank.color_embed))
 
+def embed_success(desc):
+    return discord.Embed(description=str(desc), color=_SUCCESS_GREEN)
+
+def embed_alert(desc):
+    return discord.Embed(description=str(desc), color=_ALERT_AMBER)
+
 def _make_pages(guilds, title):
     chunks = paginator.chunkify(guilds, _GUILDS_PER_PAGE)
     pages = []
@@ -98,7 +104,7 @@ class Moderator(commands.Cog):
             user.upload_from_filename(constants.USER_DB_FILE_PATH)
             cache = bucket.blob('tle_cache.db')
             cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
-
+            await ctx.send(embed=embed_success('Database uploaded successfully.'))
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()
