@@ -44,8 +44,15 @@ def setup():
     # Update the user.db file from firebase
     if bucket!=None:
         try:
-            blob = bucket.blob('tle.db')
-            blob.download_to_filename(constants.USER_DB_FILE_PATH)
+            user = bucket.blob('tle.db')
+            user.download_to_filename(constants.USER_DB_FILE_PATH)
+        except:
+            # File is not present in Firebase Storage
+            pass
+
+        try:
+            cache = bucket.blob('tle_cache.db')
+            cache.download_to_filename(constants.CACHE_DB_FILE_PATH)
         except:
             # File is not present in Firebase Storage
             pass

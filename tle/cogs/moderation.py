@@ -8,6 +8,8 @@ import json
 import discord
 
 from math import *
+from os import environ
+from firebase_admin import storage
 from tle.util import table
 from tle.util import paginator
 from discord.ext import commands
@@ -26,6 +28,11 @@ _PAGINATE_WAIT_TIME = 5 * 60  # 5 minutes
 _GUILDS_PER_PAGE = 10
 _NAME_MAX_LEN = 30
 _OWNER_MAX_LEN = 30
+
+bucket = None
+STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
+if STORAGE_BUCKET!='None':
+    bucket = storage.bucket()
 
 async def _create_roles(ctx, ranks):
     roles = [role.name for role in ctx.guild.roles]
@@ -79,6 +86,19 @@ class Moderator(commands.Cog):
         """Restarts the bot."""
         await ctx.send('TLE is restarting :arrows_clockwise:')
         os._exit(42)
+
+    @meta.command(brief='Upload database')
+    @commands.is_owner()
+    async def uploaddb(self, ctx):
+        """Update the data in firebase"""
+        if bucket==None:
+            await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
+        else:
+            user = bucket.blob('tle.db')
+            user.upload_from_filename(constants.USER_DB_FILE_PATH)
+            cache = bucket.blob('tle_cache.db')
+            cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
+
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()
