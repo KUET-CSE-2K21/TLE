@@ -102,10 +102,12 @@ class Moderator(commands.Cog):
         if bucket==None:
             await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
         else:
+            wait_msg = await ctx.channel.send('Uploading database, please wait...')
             user = bucket.blob('tle.db')
             user.upload_from_filename(constants.USER_DB_FILE_PATH)
             cache = bucket.blob('tle_cache.db')
             cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
+            await wait_msg.delete()
             await ctx.send(embed=embed_success('Database uploaded successfully.'))
 
     @meta.command(brief='Kill TLE')
