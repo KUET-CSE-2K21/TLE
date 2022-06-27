@@ -14,7 +14,6 @@ from tle.util import paginator
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
-_CONTESTS_PER_BATCH_IN_CACHE_UPDATES = 2
 CONTEST_BLACKLIST = {1308, 1309, 1431, 1432, 1522, 1531}
 
 def _is_blacklisted(contest):
@@ -395,11 +394,11 @@ class RatingChangesCache:
         contests = [
             contest for contest in contests if not self.has_rating_changes_saved(contest.id)]
         total_changes = 0
-        for contests_chunk in paginator.chunkify(contests, _CONTESTS_PER_BATCH_IN_CACHE_UPDATES):
+        for contests_chunk in paginator.chunkify(contests, 1):
             contests_chunk = await self._fetch(contests_chunk)
             self._save_changes(contests_chunk)
             total_changes += len(contests_chunk)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
         return total_changes
 
     def is_newly_finished_without_rating_changes(self, contest):
