@@ -75,6 +75,12 @@ class UserDbConn:
         self.conn = sqlite3.connect(dbfile)
         self.conn.row_factory = namedtuple_factory
         self.create_tables()
+
+    def update(self):
+        if bucket==None:
+            return
+        blob = bucket.blob('tle.db')
+        blob.upload_from_filename(constants.USER_DB_FILE_PATH)
     
     def create_tables(self):
         self.conn.execute(
