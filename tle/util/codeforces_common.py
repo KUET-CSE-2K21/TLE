@@ -51,7 +51,11 @@ async def initialize(nodb):
 
     await cf.initialize()
 
-    user_db  = db.UserDbConn(constants.USER_DB_FILE_PATH)
+    if nodb:
+        user_db = db.DummyUserDbConn()
+    else:
+        user_db = db.UserDbConn(constants.USER_DB_FILE_PATH)
+    
     cache_db = db.CacheDbConn(constants.CACHE_DB_FILE_PATH)
 
     cache2 = cache_system2.CacheSystem(cache_db)
