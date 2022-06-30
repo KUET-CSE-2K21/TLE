@@ -95,20 +95,29 @@ class Moderator(commands.Cog):
         await ctx.send('TLE is restarting :arrows_clockwise:')
         os._exit(42)
 
-    @meta.command(brief='Upload database')
+    @meta.command(brief='Update database', usage='[all|user|cache]')
     @commands.is_owner()
-    async def uploaddb(self, ctx):
-        """Update the data in firebase"""
+    async def uploaddb(self, ctx, db = 'all'):
+        """Upload database to Googe Firebase"""
         if bucket==None:
             await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
         else:
             wait_msg = await ctx.channel.send('Uploading database, please wait...')
-            user = bucket.blob('tle.db')
-            user.upload_from_filename(constants.USER_DB_FILE_PATH)
-            cache = bucket.blob('tle_cache.db')
-            cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
+            try:
+                if db == 'cache' or db == 'all':
+                    cache = bucket.blob('tle_cache.db')
+                    cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
+                    await ctx.send(embed=embed_success('Cache database uploaded successfully.'))
+            except Exception as e:
+                await ctx.send(embed=embed_alert(f'Cache database upload failed: {e}'))
+            try:
+                if db == 'user' or db == 'all':
+                    user = bucket.blob('tle.db')
+                    user.upload_from_filename(constants.USER_DB_FILE_PATH)
+                    await ctx.send(embed=embed_success('User database uploaded successfully.'))
+            except Exception as e:
+                await ctx.send(embed=embed_alert(f'User database upload failed: {e}'))
             await wait_msg.delete()
-            await ctx.send(embed=embed_success('Database uploaded successfully.'))
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()

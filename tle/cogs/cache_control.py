@@ -66,7 +66,7 @@ class CacheControl(commands.Cog):
             count = await cf_common.cache2.rating_changes_cache.fetch_contest(contest_id)
         await ctx.send(f'Done, fetched {count} changes and recached handle ratings')
 
-    @cache.command(usage='contest_id|all')
+    @cache.command(usage='[contest_id|all]')
     @commands.is_owner()
     @timed_command
     async def problemsets(self, ctx, contest_id):

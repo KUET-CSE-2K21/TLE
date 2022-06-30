@@ -487,7 +487,7 @@ class Handles(commands.Cog):
                 roletitle = rating2star(user['rating']).title
                 roles = [role for role in ctx.guild.roles if role.name == roletitle]
                 if not roles:
-                    await ctx.send(f'Role for `{roletitle}` is not present in the server.\n> `Note: If you have Administrator permission you can type ";createroles codechef" to automatically create roles for Codechef users, then type ";roleupdate now" to apply changes.`')
+                    await ctx.send(f'Role for `{roletitle}` is not present in the server.\n> `Note: If you have Administrator permission you can type ";createroles codechef" to automatically create roles for Codechef users, then type ";roleupdate codechef" to apply changes.`')
                 else:
                     await self.update_member_star_role(ctx.guild.get_member(member_id),roles[0] ,reason='CodeChef Account Set')
         except db.UniqueConstraintFailed:
