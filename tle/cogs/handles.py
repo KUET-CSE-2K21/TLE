@@ -443,12 +443,12 @@ class Handles(commands.Cog):
         if to_remove:
             try:
                 await member.remove_roles(*to_remove, reason=reason)
-            except Forbidden:
+            except discord.Forbidden:
                 await ctx.send(f'Cannot remove role {to_remove[0].name}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
         if role_to_assign is not None and role_to_assign not in member.roles:
             try:
                 await member.add_roles(role_to_assign, reason=reason)
-            except Forbidden:
+            except discord.Forbidden:
                 await ctx.send(f'Cannot assign role {role_to_assign}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
 
     @handle.command(brief='Set Codeforces handle of a user', usage="@member [website]:[handle]")
