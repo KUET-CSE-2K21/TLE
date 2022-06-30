@@ -97,9 +97,11 @@ class Moderator(commands.Cog):
 
     @meta.command(brief='Update database', usage='[all|user|cache]')
     @commands.is_owner()
-    async def uploaddb(self, ctx, db = 'all'):
+    async def uploaddb(self, ctx, db):
         """Upload database to Googe Firebase"""
-        if bucket==None:
+        if db != 'all' and db != 'user' and db != 'cache':
+            await ctx.send_help(ctx.command)
+        elif bucket==None:
             await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
         else:
             wait_msg = await ctx.channel.send('Uploading database, please wait...')

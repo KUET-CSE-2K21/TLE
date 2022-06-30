@@ -420,9 +420,15 @@ class Handles(commands.Cog):
             role_names_to_remove.discard(role_to_assign.name)
         to_remove = [role for role in member.roles if role.name in role_names_to_remove]
         if to_remove:
-            await member.remove_roles(*to_remove, reason=reason)
+            try:
+                await member.remove_roles(*to_remove, reason=reason)
+            except Forbidden:
+                await ctx.send(f'Cannot remove role {*to_remove}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
         if role_to_assign is not None and role_to_assign not in member.roles:
-            await member.add_roles(role_to_assign, reason=reason)
+            try:
+                await member.add_roles(role_to_assign, reason=reason)
+            except Forbidden:
+                await ctx.send(f'Cannot assign role {role_to_assign}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
 
     @staticmethod
     async def update_member_rank_role(member, role_to_assign, *, reason):
@@ -433,14 +439,17 @@ class Handles(commands.Cog):
         role_names_to_remove = {rank.title for rank in cf.RATED_RANKS}
         if role_to_assign is not None:
             role_names_to_remove.discard(role_to_assign.name)
-            role_names_to_remove.add('Unrated')
-            if role_to_assign.name not in ['Newbie', 'Pupil', 'Specialist', 'Expert']:
-                role_names_to_remove.add('Purgatory')
         to_remove = [role for role in member.roles if role.name in role_names_to_remove]
         if to_remove:
-            await member.remove_roles(*to_remove, reason=reason)
+            try:
+                await member.remove_roles(*to_remove, reason=reason)
+            except Forbidden:
+                await ctx.send(f'Cannot remove role {*to_remove}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
         if role_to_assign is not None and role_to_assign not in member.roles:
-            await member.add_roles(role_to_assign, reason=reason)
+            try:
+                await member.add_roles(role_to_assign, reason=reason)
+            except Forbidden:
+                await ctx.send(f'Cannot assign role {role_to_assign}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
 
     @handle.command(brief='Set Codeforces handle of a user', usage="@member [website]:[handle]")
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
