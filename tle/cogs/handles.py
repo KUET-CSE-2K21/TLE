@@ -420,15 +420,9 @@ class Handles(commands.Cog):
             role_names_to_remove.discard(role_to_assign.name)
         to_remove = [role for role in member.roles if role.name in role_names_to_remove]
         if to_remove:
-            try:
-                await member.remove_roles(*to_remove, reason=reason)
-            except Forbidden:
-                await ctx.send(f'Cannot remove role {to_remove[0].name}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
+            await member.remove_roles(*to_remove, reason=reason)
         if role_to_assign is not None and role_to_assign not in member.roles:
-            try:
-                await member.add_roles(role_to_assign, reason=reason)
-            except Forbidden:
-                await ctx.send(f'Cannot assign role {role_to_assign}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
+            await member.add_roles(role_to_assign, reason=reason)
 
     @staticmethod
     async def update_member_rank_role(member, role_to_assign, *, reason):
@@ -441,15 +435,9 @@ class Handles(commands.Cog):
             role_names_to_remove.discard(role_to_assign.name)
         to_remove = [role for role in member.roles if role.name in role_names_to_remove]
         if to_remove:
-            try:
-                await member.remove_roles(*to_remove, reason=reason)
-            except discord.Forbidden:
-                await ctx.send(f'Cannot remove role {to_remove[0].name}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
+            await member.remove_roles(*to_remove, reason=reason)
         if role_to_assign is not None and role_to_assign not in member.roles:
-            try:
-                await member.add_roles(role_to_assign, reason=reason)
-            except discord.Forbidden:
-                await ctx.send(f'Cannot assign role {role_to_assign}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
+            await member.add_roles(role_to_assign, reason=reason)
 
     @handle.command(brief='Set Codeforces handle of a user', usage="@member [website]:[handle]")
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
@@ -481,27 +469,29 @@ class Handles(commands.Cog):
             for user in users:
                 if user['resource'] not in _SUPPORTED_CLIST_RESOURCES:
                     continue
-                await self._set_account_id(member.id, ctx, user)
+                await self._set_account_id(member, ctx, user)
         else:
             # CF API returns correct handle ignoring case, update to it
             user, = await cf.user.info(handles=[handle])
             await self._set(ctx, member, user)
         await self.get(ctx, member, settingHandle=True)
     
-    async def _set_account_id(self, member_id, ctx, user):
+    async def _set_account_id(self, member, ctx, user):
         try:
             guild_id = ctx.guild.id
-            cf_common.user_db.set_account_id(member_id, guild_id, user['id'], user['resource'], user['handle'])
+            cf_common.user_db.set_account_id(member.id, guild_id, user['id'], user['resource'], user['handle'])
             if user['resource']=='codechef.com':
                 roletitle = rating2star(user['rating']).title
                 roles = [role for role in ctx.guild.roles if role.name == roletitle]
                 if not roles:
                     await ctx.send(f'Role for `{roletitle}` is not present in the server.\n> `Note: If you have Administrator permission you can type ";createroles codechef" to automatically create roles for Codechef users, then type ";roleupdate codechef" to apply changes.`')
                 else:
-                    await self.update_member_star_role(ctx.guild.get_member(member_id),roles[0] ,reason='CodeChef Account Set')
+                    try:
+                        await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
+                    except discord.Forbidden:
+                        await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
-
 
     async def _set(self, ctx, member, user):
         handle = user.handle
@@ -520,8 +510,10 @@ class Handles(commands.Cog):
                 role_to_assign = None
             else:
                 role_to_assign = roles[0]
-        await self.update_member_rank_role(member, role_to_assign,
-                                           reason='New handle set for user')
+        try:
+            await self.update_member_rank_role(member, role_to_assign, reason='New handle set for user')
+        except discord.Forbidden:
+            await ctx.send(f'Cannot update roles {member.mention}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
 
     @handle.command(brief='Identify yourself', usage='[[website]:[handle]]')
     @cf_common.user_guard(group='handle',
