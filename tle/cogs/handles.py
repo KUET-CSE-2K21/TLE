@@ -489,7 +489,7 @@ class Handles(commands.Cog):
                     try:
                         await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
                     except discord.Forbidden:
-                        await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codechef roles, then type ";roleupdate codechef" to apply changes.`')
+                        await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure TLE has a higher role than other Codechef roles, then type ";roleupdate codechef" to try updating roles again.`')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
 
@@ -513,7 +513,7 @@ class Handles(commands.Cog):
         try:
             await self.update_member_rank_role(member, role_to_assign, reason='New handle set for user')
         except discord.Forbidden:
-            await ctx.send(f'Cannot update roles {member.mention}: Missing permission.\n> `Note: Make sure <@968509913531809862> has higher role than other Codeforces roles, then type ";roleupdate now" to apply changes.`')
+            await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure TLE has a higher role than other Codechef roles, then type ";roleupdate codechef" to try updating roles again.`')
 
     @handle.command(brief='Identify yourself', usage='[[website]:[handle]]')
     @cf_common.user_guard(group='handle',
