@@ -1227,7 +1227,6 @@ class Activity(commands.Cog):
                                 title='Rating distribution of server members')
 
     @plot.command(brief='Show Codeforces rating distribution', usage='[normal/log] [active/all] [contest_cutoff=5]')
-    @commands.is_owner()
     async def cfdistrib(self, ctx, mode: str = 'log', activity = 'active', contest_cutoff: int = 5):
         """Plots rating distribution of either active or all users on Codeforces, in either normal or log scale.
         Default mode is log, default activity is active (competed in last 90 days)
@@ -1250,7 +1249,7 @@ class Activity(commands.Cog):
                                 title=title)
 
     @plot.command(brief='Show percentile distribution on codeforces', usage='[+zoom] [+nomarker] [handles...] [+exact]')
-    @commands.is_owner()
+    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def centile(self, ctx, *args: str):
         """Show percentile distribution of codeforces and mark given handles in the plot. If +zoom and handles are given, it zooms to the neighborhood of the handles."""
         (zoom, nomarker, exact), args = cf_common.filter_flags(args, ['+zoom', '+nomarker', '+exact'])
