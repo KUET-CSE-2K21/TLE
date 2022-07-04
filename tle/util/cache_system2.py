@@ -14,10 +14,6 @@ from tle.util import paginator
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
-CONTEST_BLACKLIST = {1308, 1309, 1431, 1432, 1522, 1531}
-
-def _is_blacklisted(contest):
-    return contest.id in CONTEST_BLACKLIST
 
 class CacheError(commands.CommandError):
     pass
@@ -358,8 +354,9 @@ class ProblemsetCache:
 
 
 class RatingChangesCache:
-    _RATED_DELAY = 36 * 60 * 60
+    _RATED_DELAY = 120 * 60 * 60
     _RELOAD_DELAY = 10 * 60
+    _CONTESTS_PER_CHUNK = 100
 
     def __init__(self, cache_master):
         self.cache_master = cache_master
@@ -394,11 +391,10 @@ class RatingChangesCache:
         contests = [
             contest for contest in contests if not self.has_rating_changes_saved(contest.id)]
         total_changes = 0
-        for contests_chunk in paginator.chunkify(contests, 1):
+        for contests_chunk in paginator.chunkify(contests, _CONTESTS_PER_CHUNK):
             contests_chunk = await self._fetch(contests_chunk)
             self._save_changes(contests_chunk)
             total_changes += len(contests_chunk)
-            await asyncio.sleep(2)
         return total_changes
 
     def is_newly_finished_without_rating_changes(self, contest):
@@ -421,7 +417,6 @@ class RatingChangesCache:
             contest for contest in
             self.cache_master.contest_cache.contests_by_phase['FINISHED'] 
             if self.is_newly_finished_without_rating_changes(contest)
-            and not _is_blacklisted(contest)
             ]
                  
         cur_ids = {contest.id for contest in self.monitored_contests}
@@ -440,7 +435,6 @@ class RatingChangesCache:
         self.monitored_contests = [
             contest for contest in self.monitored_contests
             if self.is_newly_finished_without_rating_changes(contest)
-            and not _is_blacklisted(contest)
         ]
 
         if not self.monitored_contests:
@@ -542,8 +536,7 @@ class RanklistCache:
         rating_cache = self.cache_master.rating_changes_cache
         finished_contests = [
             contest for contest in contests_by_phase['FINISHED']
-            if not _is_blacklisted(contest)
-            and rating_cache.is_newly_finished_without_rating_changes(contest)
+            if rating_cache.is_newly_finished_without_rating_changes(contest)
         ]
 
         to_monitor = running_contests + finished_contests
@@ -563,9 +556,7 @@ class RanklistCache:
         cache = self.cache_master.rating_changes_cache
         self.monitored_contests = [
             contest for contest in self.monitored_contests
-            if not _is_blacklisted(contest) and (
-                contest.phase != 'FINISHED'
-                or cache.is_newly_finished_without_rating_changes(contest))
+            if contest.phase != 'FINISHED' or cache.is_newly_finished_without_rating_changes(contest)
         ]
 
         if not self.monitored_contests:

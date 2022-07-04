@@ -30,12 +30,12 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ⌛ Ultra-precise calculator (with some maths function).
 
+⌛ `;handle list` will be filtered with specified countries.
+
 ## Known bugs
 
 ✔️ [FIXED] Repeated contest publish in publish channel.
 
 ✔️ [FIXED] `;plot centile` command is not working properly.
 
-❌ `;handle list` is not working with specified countries.
-
-❌ `;roleupdate auto` is not working after CF's rollbacks (can be fixed manually by typing `;roleupdate now`)
+✔️ [FIXED] `;roleupdate auto` is not working after CF's rollbacks.

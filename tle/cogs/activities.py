@@ -650,7 +650,7 @@ class Activity(commands.Cog):
                 resp = [await clist.fetch_rating_changes([account_id])]
                 handles.append(ctx.author.display_name)
             else:
-                    raise cf_common.HandleNotRegisteredError(ctx.author)
+                raise cf_common.HandleNotRegisteredError(ctx.author, resource)
 
         resp = [filt.filter_rating_changes(rating_changes) for rating_changes in resp]
 
@@ -743,7 +743,7 @@ class Activity(commands.Cog):
                     resp = [await clist.fetch_rating_changes([account_id])]
                     handles.append(ctx.author.display_name)
                 else:
-                    raise cf_common.HandleNotRegisteredError(ctx.author)
+                    raise cf_common.HandleNotRegisteredError(ctx.author, resource)
 
         resp = [filt.filter_rating_changes(rating_changes) for rating_changes in resp]
 
@@ -840,7 +840,7 @@ class Activity(commands.Cog):
                     resp = [await clist.fetch_rating_changes([account_id],  resource=='atcoder.jp')]
                     handles.append(ctx.author.display_name)
                 else:
-                    raise cf_common.HandleNotRegisteredError(ctx.author)
+                    raise cf_common.HandleNotRegisteredError(ctx.author, resource)
         # extract last rating before corrections
         current_ratings = [rating_changes[-1].newRating if rating_changes else 'Unrated' for rating_changes in resp]
         if resource!='codeforces.com':
@@ -1175,20 +1175,15 @@ class Activity(commands.Cog):
             height[r // binsize] += 1
 
         csum = 0
-        cent = [0]
         users = sum(height)
-        for h in height:
-            csum += h
-            cent.append(round(100 * csum / users))
 
         x = [k * binsize for k in range(bins)]
-        label = [f'{r} ({c})' for r,c in zip(x, cent)]
+        label = [f'{r}' for r in x]
 
         l,r = 0,bins-1
         while not height[l]: l += 1
         while not height[r]: r -= 1
         x = x[l:r+1]
-        cent = cent[l:r+1]
         label = label[l:r+1]
         colors = colors[l:r+1]
         height = height[l:r+1]
@@ -1213,40 +1208,14 @@ class Activity(commands.Cog):
     @plot.command(brief='Show server rating distribution')
     async def distrib(self, ctx):
         """Plots rating distribution of users in this server"""
-        def in_purgatory(userid):
-            member = ctx.guild.get_member(int(userid))
-            return not member or 'Purgatory' in {role.name for role in member.roles}
-
         res = cf_common.user_db.get_cf_users_for_guild(ctx.guild.id)
         ratings = [cf_user.rating for user_id, cf_user in res
-                   if cf_user.rating is not None and not in_purgatory(user_id)]
+                   if cf_user.rating is not None]
         await self._rating_hist(ctx,
                                 ratings,
                                 'normal',
                                 binsize=100,
                                 title='Rating distribution of server members')
-
-    @plot.command(brief='Show Codeforces rating distribution', usage='[normal/log] [active/all] [contest_cutoff=5]')
-    async def cfdistrib(self, ctx, mode: str = 'log', activity = 'active', contest_cutoff: int = 5):
-        """Plots rating distribution of either active or all users on Codeforces, in either normal or log scale.
-        Default mode is log, default activity is active (competed in last 90 days)
-        Default contest cutoff is 5 (competed at least five times overall)
-        """
-        if activity not in ['active', 'all']:
-            raise ActivityCogError('Activity should be either `active` or `all`')
-
-        time_cutoff = int(time.time()) - CONTEST_ACTIVE_TIME_CUTOFF if activity == 'active' else 0
-        handles = cf_common.cache2.rating_changes_cache.get_users_with_more_than_n_contests(time_cutoff, contest_cutoff)
-        if not handles:
-            raise ActivityCogError('No Codeforces users meet the specified criteria')
-
-        ratings = [cf_common.cache2.rating_changes_cache.get_current_rating(handle) for handle in handles]
-        title = f'Rating distribution of {activity} Codeforces users ({mode} scale)'
-        await self._rating_hist(ctx,
-                                ratings,
-                                mode,
-                                binsize=100,
-                                title=title)
 
     @plot.command(brief='Show percentile distribution on codeforces', usage='[+zoom] [+nomarker] [handles...] [+exact]')
     async def centile(self, ctx, *args: str):

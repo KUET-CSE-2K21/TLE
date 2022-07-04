@@ -730,13 +730,14 @@ class Handles(commands.Cog):
                     if self.dlo <= change.ratingUpdateTimeSeconds < self.dhi]
         return rating_changes
 
-    @handle.command(brief="Show all handles", usage="[countries...] [website]")
-    async def list(self, ctx, resource='codeforces.com'):
-        """Shows members of the server who have registered their handles and
-        their Codeforces ratings. You can additionally specify a list of countries
-        if you wish to display only members from those countries. Country data is
-        sourced from codeforces profiles. e.g. ;handle list Croatia Slovenia
+    @handle.command(brief="Show all handles", usage="[website] [countries...]")
+    async def list(self, ctx, resource = 'codeforces.com'):
+        """Shows members of the server who have registered their handles and their ratings. Default platform is CodeForces.
+        Upcoming feature: you can additionally specify a list of countries if you wish to display only members from those countries.
+        e.g. ;handle list Croatia Slovenia
+             ;handle list atcoder Vietnam
         """
+
         if resource in _CLIST_RESOURCE_SHORT_FORMS:
             resource = _CLIST_RESOURCE_SHORT_FORMS[resource]
         if resource!='codeforces.com' and resource not in _SUPPORTED_CLIST_RESOURCES:
@@ -936,13 +937,10 @@ class Handles(commands.Cog):
         user_id_handle_pairs = cf_common.user_db.get_handles_for_guild(guild.id)
         member_handle_pairs = [(guild.get_member(user_id), handle)
                                for user_id, handle in user_id_handle_pairs]
-        def ispurg(member):
-            # TODO: temporary code, todo properly later
-            return any(role.name == 'Purgatory' for role in member.roles)
 
         member_change_pairs = [(member, change_by_handle[handle])
                                for member, handle in member_handle_pairs
-                               if member is not None and handle in change_by_handle and not ispurg(member)]
+                               if member is not None and handle in change_by_handle]
         if not member_change_pairs:
             raise HandleCogError(f'Contest `{contest.id} | {contest.name}` was not rated for any '
                                  'member of this server.')
