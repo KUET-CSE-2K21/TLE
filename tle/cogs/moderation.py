@@ -192,14 +192,23 @@ class Moderator(commands.Cog):
     @commands.command(brief='Ban users from accessing the bot')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def ban(self, ctx, member: discord.Member):
+        if member.id == ctx.author.id:
+            return await ctx.send(embed=embed_alert(f'**{str(member.display_name)}**, don\'t ban yourself!'))
+        if member.guild_permissions.administrator:
+            return await ctx.send(embed=embed_alert('You can\'t ban a moderator.'))
+        if member.id == 782124623910535188:
+            return await ctx.send(embed=embed_alert('Ya sur ya dare tu ben my owner? :knife:'))
         cf_common.user_db.ban_user(member.id)
-        return await ctx.send("```"+str(member.display_name)+" banned from TLE!!!```")
+        return await ctx.send(embed=embed_success(str(member) + ' has been banned from TLE.'))
     
     @commands.command(brief='Unban users from accessing the bot')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unban(self, ctx, member: discord.Member):
+        banned = cf_common.user_db.get_banned_user(ctx.author.id)
+        if banned is None:
+            return await ctx.send(embed=embed_alert('User was not banned or does not exist.'))
         cf_common.user_db.unban_user(member.id)
-        return await ctx.send("```"+str(member.display_name)+" unbanned!!! ```")
+        return await ctx.send(embed=embed_success(str(member) + ' is now unbanned.'))
     
     @commands.group(brief='Create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_any_role('Admin'), commands.is_owner())

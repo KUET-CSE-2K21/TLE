@@ -580,7 +580,7 @@ class Handles(commands.Cog):
             problems = [prob for prob in cf_common.cache2.problem_cache.problems
                         if prob.rating <= 1200]
             problem = random.choice(problems)
-            await ctx.send(f'`{invoker}`, submit a compile error to <{problem.url}> within 60 seconds')
+            await ctx.send(f'`{invoker}`, submit a compile error to <{problem.url}> within 60 seconds to identify handle')
             await asyncio.sleep(60)
 
             subs = await cf.user.status(handle=handle, count=5)
