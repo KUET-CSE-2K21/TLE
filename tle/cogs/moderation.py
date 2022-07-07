@@ -204,7 +204,7 @@ class Moderator(commands.Cog):
     @commands.command(brief='Unban users from accessing the bot')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def unban(self, ctx, member: discord.Member):
-        banned = cf_common.user_db.get_banned_user(ctx.author.id)
+        banned = cf_common.user_db.get_banned_user(member.id)
         if banned is None:
             cf_common.user_db.unban_user(member.id)
             return await ctx.send(embed=embed_success(str(member) + ' is now unbanned.'))
