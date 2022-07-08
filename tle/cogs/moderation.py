@@ -194,10 +194,11 @@ class Moderator(commands.Cog):
     async def ban(self, ctx, member: discord.Member):
         if member.id == ctx.author.id:
             return await ctx.send(embed=embed_alert(f'**{str(member.display_name)}**, don\'t ban yourself!'))
-        if member.guild_permissions.administrator:
-            return await ctx.send(embed=embed_alert('You can\'t ban a moderator.'))
-        if member.id == 782124623910535188:
-            return await ctx.send(embed=embed_alert('Ya sur ya dare tu ben my owner? :knife:'))
+        if ctx.author.id != 782124623910535188:
+            if member.guild_permissions.administrator:
+                return await ctx.send(embed=embed_alert('You can\'t ban a moderator.'))
+            if member.id == 782124623910535188:
+                return await ctx.send(embed=embed_alert('Ya sur ya dare tu ben my owner? :knife:'))
         cf_common.user_db.ban_user(member.id)
         return await ctx.send(embed=embed_success(str(member) + ' has been banned from TLE.'))
     

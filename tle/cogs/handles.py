@@ -489,7 +489,7 @@ class Handles(commands.Cog):
                     try:
                         await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
                     except discord.Forbidden:
-                        await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure TLE has a higher role than other Codechef roles, then type ";roleupdate codechef" to try updating roles again.`')
+                        await ctx.send(f'Cannot update Codechef role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codechef roles,\n  2. then type ";roleupdate codechef" to try updating roles again.\n```')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
 
@@ -513,7 +513,7 @@ class Handles(commands.Cog):
         try:
             await self.update_member_rank_role(member, role_to_assign, reason='New handle set for user')
         except discord.Forbidden:
-            await ctx.send(f'Cannot update roles for {member.mention}: Missing permission.\n> `Note: Make sure TLE has a higher role than other Codechef roles, then type ";roleupdate codechef" to try updating roles again.`')
+            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
 
     @handle.command(brief='Identify yourself', usage='[[website]:[handle]]')
     @cf_common.user_guard(group='handle',
@@ -622,9 +622,14 @@ class Handles(commands.Cog):
         rc = cf_common.user_db.remove_handle(member.id, ctx.guild.id)
         if not rc:
             raise HandleCogError(f'Handle for {member.mention} not found in database')
-        await self.update_member_rank_role(member, role_to_assign=None,
-                                           reason='Handle removed for user')
-        await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
+        try:
+            await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
+        except discord.Forbidden:
+            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
+        try:
+            await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
+        except discord.Forbidden:
+            await ctx.send(f'Cannot update Codechef role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codechef roles,\n  2. then type ";roleupdate codechef" to try updating roles again.\n```')
         embed = discord_common.embed_success(f'Removed handle for {member.mention}')
         await ctx.send(embed=embed)
 
@@ -638,9 +643,14 @@ class Handles(commands.Cog):
         if not rc:
             raise HandleCogError(f'Handle for {mention} not found in database')
         if member:
-            await self.update_member_rank_role(member, role_to_assign=None,
-                                            reason='Handle removed for user')
-            await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
+            try:
+                await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
+            except discord.Forbidden:
+                await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
+            try:
+                await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
+            except discord.Forbidden:
+                await ctx.send(f'Cannot update Codechef role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codechef roles,\n  2. then type ";roleupdate codechef" to try updating roles again.\n```')
         embed = discord_common.embed_success(f'Removed handle for {mention}')
         await ctx.send(embed=embed)
 
