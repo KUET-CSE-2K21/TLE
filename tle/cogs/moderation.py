@@ -207,9 +207,9 @@ class Moderator(commands.Cog):
     async def unban(self, ctx, member: discord.Member):
         banned = cf_common.user_db.get_banned_user(member.id)
         if banned is None:
-            cf_common.user_db.unban_user(member.id)
-            return await ctx.send(embed=embed_success(str(member) + ' is now unbanned.'))
-        return await ctx.send(embed=embed_alert('User was not banned or does not exist.'))
+            return await ctx.send(embed=embed_alert('User was not banned or does not exist.'))
+        cf_common.user_db.unban_user(member.id)
+        return await ctx.send(embed=embed_success(str(member) + ' is now unbanned.'))
     
     @commands.group(brief='Create roles for codeforces/codechef', invoke_without_command=True)
     @commands.check_any(commands.has_any_role('Admin'), commands.is_owner())
