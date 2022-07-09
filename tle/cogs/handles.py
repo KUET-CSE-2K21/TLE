@@ -513,7 +513,7 @@ class Handles(commands.Cog):
         try:
             await self.update_member_rank_role(member, role_to_assign, reason='New handle set for user')
         except discord.Forbidden:
-            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
+            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
 
     @handle.command(brief='Identify yourself', usage='[[website]:[handle]]')
     @cf_common.user_guard(group='handle',
@@ -625,7 +625,7 @@ class Handles(commands.Cog):
         try:
             await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
         except discord.Forbidden:
-            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
+            await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
         try:
             await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
         except discord.Forbidden:
@@ -646,7 +646,7 @@ class Handles(commands.Cog):
             try:
                 await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
             except discord.Forbidden:
-                await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n>```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
+                await ctx.send(f'Cannot update Codeforces role for {member.mention}: Missing permission.\n```\nHow to fix:\n  1. Make sure TLE has a higher role than other Codeforces roles,\n  2. then type ";roleupdate now" to try updating roles again.\n```')
             try:
                 await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
             except discord.Forbidden:
