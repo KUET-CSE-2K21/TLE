@@ -135,7 +135,7 @@ def main():
             logging.info(f"Posted server count ({bot.topggpy.guild_count})")
         except Exception as e:
             logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
-        if bucket != None
+        if bucket != None:
             blob = bucket.blob('tle.db')
             blob.upload_from_filename(constants.USER_DB_FILE_PATH)
 
