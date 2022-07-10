@@ -565,10 +565,6 @@ class Handles(commands.Cog):
                 await wait_msg.delete()
                 await ctx.send(f'Sorry `{invoker}`, can you try again?')
         else:
-            if cf_common.user_db.get_handle(ctx.author.id, ctx.guild.id):
-                raise HandleCogError(f'{ctx.author.mention}, you cannot identify when your handle is '
-                                    'already set. Ask an Admin or Moderator if you wish to change it')
-
             if cf_common.user_db.get_user_id(handle, ctx.guild.id):
                 raise HandleCogError(f'The handle `{handle}` is already associated with another user. Ask an Admin or Moderator in case of an inconsistency.')
 

@@ -130,12 +130,14 @@ def main():
 
     @tasks.loop(minutes=5)
     async def update_stats():
-        """This function runs every 5 minutes to automatically update your server count."""
         try:
             await bot.topggpy.post_guild_count()
             logging.info(f"Posted server count ({bot.topggpy.guild_count})")
         except Exception as e:
             logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
+        if bucket != None
+            blob = bucket.blob('tle.db')
+            blob.upload_from_filename(constants.USER_DB_FILE_PATH)
 
     update_stats.start()
 

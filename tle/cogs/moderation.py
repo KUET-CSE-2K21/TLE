@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import time
+import functools
 import textwrap
 import logging
 import json
@@ -71,6 +72,17 @@ def _make_pages(guilds, title):
 
     return pages
 
+def timed_command(coro):
+    @functools.wraps(coro)
+    async def wrapper(cog, ctx, *args):
+        await ctx.send('Running...')
+        begin = time.time()
+        await coro(cog, ctx, *args)
+        elapsed = time.time() - begin
+        await ctx.send(f'Completed in {elapsed:.2f} seconds')
+
+    return wrapper
+
 class Moderator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -97,29 +109,19 @@ class Moderator(commands.Cog):
 
     @meta.command(brief='Update database', usage='[all|user|cache]')
     @commands.is_owner()
-    async def uploaddb(self, ctx, db):
-        """Upload database to Googe Firebase"""
-        if db != 'all' and db != 'user' and db != 'cache':
-            await ctx.send_help(ctx.command)
-        elif bucket==None:
-            await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
-        else:
-            wait_msg = await ctx.channel.send('Uploading database, please wait...')
-            try:
-                if db == 'cache' or db == 'all':
-                    cache = bucket.blob('tle_cache.db')
-                    cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
-                    await ctx.send(embed=embed_success('Cache database uploaded successfully.'))
-            except Exception as e:
-                await ctx.send(embed=embed_alert(f'Cache database upload failed: {e}'))
-            try:
-                if db == 'user' or db == 'all':
-                    user = bucket.blob('tle.db')
-                    user.upload_from_filename(constants.USER_DB_FILE_PATH)
-                    await ctx.send(embed=embed_success('User database uploaded successfully.'))
-            except Exception as e:
-                await ctx.send(embed=embed_alert(f'User database upload failed: {e}'))
-            await wait_msg.delete()
+    @timed_command
+    async def uploaddb(self, ctx):
+        """Upload cache database to Googe Firebase"""
+        if bucket==None:
+            return await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
+        wait_msg = await ctx.channel.send('Uploading database, please wait...')
+        try:
+            cache = bucket.blob('tle_cache.db')
+            cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
+            await ctx.send(embed=embed_success('Cache database uploaded successfully.'))
+        except Exception as e:
+            await ctx.send(embed=embed_alert(f'Cache database upload failed: {e}'))
+        await wait_msg.delete()
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()

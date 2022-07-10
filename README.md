@@ -39,3 +39,7 @@ TLE is a Discord bot centered around Competitive Programming.
 ✔️ [FIXED] `;plot centile` command is not working properly.
 
 ✔️ [FIXED] `;roleupdate auto` is not working after CF's rollbacks.
+
+✔️ [FIXED] User database does not auto-update correctly.
+
+✔️ [FIXED] Cannot identify new handle.
