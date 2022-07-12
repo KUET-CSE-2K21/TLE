@@ -75,7 +75,6 @@ def _make_pages(guilds, title):
 def timed_command(coro):
     @functools.wraps(coro)
     async def wrapper(cog, ctx, *args):
-        await ctx.send('Running...')
         begin = time.time()
         await coro(cog, ctx, *args)
         elapsed = time.time() - begin
@@ -114,14 +113,15 @@ class Moderator(commands.Cog):
         """Upload cache database to Googe Firebase"""
         if bucket==None:
             return await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
-        wait_msg = await ctx.channel.send('Uploading database, please wait...')
+        await ctx.send('Caching database, please wait...')
         try:
+            begin = time.time()
             cache = bucket.blob('tle_cache.db')
             cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
-            await ctx.send(embed=embed_success('Cache database uploaded successfully.'))
+            elapsed = time.time() - begin
+            await ctx.send(embed=embed_success(f'Cache database uploaded successfully.\nCompleted in {elapsed:.2f} seconds.'))
         except Exception as e:
             await ctx.send(embed=embed_alert(f'Cache database upload failed: {e}'))
-        await wait_msg.delete()
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()
