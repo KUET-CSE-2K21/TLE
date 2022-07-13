@@ -9,8 +9,6 @@ import json
 import discord
 
 from math import *
-from os import environ
-from firebase_admin import storage
 from tle.util import table
 from tle.util import paginator
 from discord.ext import commands
@@ -31,11 +29,6 @@ _NAME_MAX_LEN = 30
 _OWNER_MAX_LEN = 30
 _SUCCESS_GREEN = 0x28A745
 _ALERT_AMBER = 0xFFBF00
-
-bucket = None
-STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
-if STORAGE_BUCKET!='None':
-    bucket = storage.bucket()
 
 async def _create_roles(ctx, ranks):
     roles = [role.name for role in ctx.guild.roles]
@@ -72,16 +65,6 @@ def _make_pages(guilds, title):
 
     return pages
 
-def timed_command(coro):
-    @functools.wraps(coro)
-    async def wrapper(cog, ctx, *args):
-        begin = time.time()
-        await coro(cog, ctx, *args)
-        elapsed = time.time() - begin
-        await ctx.send(f'Completed in {elapsed:.2f} seconds')
-
-    return wrapper
-
 class Moderator(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -105,23 +88,6 @@ class Moderator(commands.Cog):
         """Restarts the bot."""
         await ctx.send('TLE is restarting :arrows_clockwise:')
         os._exit(42)
-
-    @meta.command(brief='Update database', usage='[all|user|cache]')
-    @commands.is_owner()
-    @timed_command
-    async def uploaddb(self, ctx):
-        """Upload cache database to Googe Firebase"""
-        if bucket==None:
-            return await ctx.send(embed=embed_alert('Cannot find storage bucket.'))
-        await ctx.send('Caching database, please wait...')
-        try:
-            begin = time.time()
-            cache = bucket.blob('tle_cache.db')
-            cache.upload_from_filename(constants.CACHE_DB_FILE_PATH)
-            elapsed = time.time() - begin
-            await ctx.send(embed=embed_success(f'Cache database uploaded successfully.\nCompleted in {elapsed:.2f} seconds.'))
-        except Exception as e:
-            await ctx.send(embed=embed_alert(f'Cache database upload failed: {e}'))
 
     @meta.command(brief='Kill TLE')
     @commands.is_owner()
