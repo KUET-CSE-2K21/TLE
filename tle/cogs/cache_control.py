@@ -15,6 +15,15 @@ STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
 if STORAGE_BUCKET!='None':
     bucket = storage.bucket()
 
+_SUCCESS_GREEN = 0x28A745
+_ALERT_AMBER = 0xFFBF00
+
+def embed_success(desc):
+    return discord.Embed(description=str(desc), color=_SUCCESS_GREEN)
+
+def embed_alert(desc):
+    return discord.Embed(description=str(desc), color=_ALERT_AMBER)
+
 def timed_command(coro):
     @functools.wraps(coro)
     async def wrapper(cog, ctx, *args):
