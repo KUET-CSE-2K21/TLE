@@ -2,6 +2,7 @@ import functools
 import time
 import traceback
 
+import discord
 from discord.ext import commands
 
 from tle import constants
