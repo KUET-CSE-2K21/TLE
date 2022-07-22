@@ -76,10 +76,6 @@ class Moderator(commands.Cog):
     async def on_ready(self):
         pass
 
-    @commands.slash_command(name="siadfjasjd")
-    async def first_slash(ctx): 
-        await ctx.respond("You executed the slash command!")
-
     @commands.group(brief='Bot control', invoke_without_command=True)
     async def meta(self, ctx):
         """Command the bot or get information about the bot."""
