@@ -22,6 +22,7 @@ from tle.util.codeforces_api import RATED_RANKS as CODEFORCES_RATED_RANKS
 from discord.ext import commands
 from tle.util.codeforces_common import pretty_time_format
 from tle.util import clist_api
+from discord_slash import cog_ext, SlashContext
 
 _PAGINATE_WAIT_TIME = 5 * 60  # 5 minutes
 _GUILDS_PER_PAGE = 10
@@ -76,6 +77,11 @@ class Moderator(commands.Cog):
     @discord_common.once
     async def on_ready(self):
         pass
+
+    @cog_ext.cog_slash(name="test")
+    async def test(self, ctx: SlashContext):
+        embed = discord.Embed(title="embed test")
+        await ctx.send(content="test", embeds=[embed])
 
     @commands.group(brief='Bot control', invoke_without_command=True)
     async def meta(self, ctx):

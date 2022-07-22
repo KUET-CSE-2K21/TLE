@@ -30,6 +30,7 @@ if STORAGE_BUCKET!='None':
 import seaborn as sns
 from discord.ext import commands
 from matplotlib import pyplot as plt
+from discord_slash import SlashCommand, SlashContext
 
 from tle import constants
 from tle.util import codeforces_common as cf_common
@@ -99,6 +100,8 @@ def main():
     intents.members = True
 
     bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
+    slash = SlashCommand(bot, sync_commands=True, sync_on_cog_reload=True)
+
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
     for extension in cogs:
         bot.load_extension(f'tle.cogs.{extension}')
@@ -127,7 +130,7 @@ def main():
     # Restrict bot usage to inside guild channels only.
     bot.add_check(no_dm_check)
     bot.add_check(ban_check)
-    
+
     bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
 
     @tasks.loop(minutes=5)
