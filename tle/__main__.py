@@ -104,6 +104,15 @@ def main():
         bot.load_extension(f'tle.cogs.{extension}')
     logging.info(f'Cogs loaded: {", ".join(bot.cogs)}')
 
+
+    # cf_common.initialize needs to run first, so it must be set as the bot's
+    # on_ready event handler rather than an on_ready listener.
+    @discord_common.on_ready_event_once(bot)
+    async def init():
+        clist_api.cache()
+        await cf_common.initialize(args.nodb)
+        asyncio.create_task(discord_common.presence(bot))
+
     def no_dm_check(ctx):
         if ctx.guild is None:
             raise commands.NoPrivateMessage('Private messages not permitted.')
@@ -118,15 +127,7 @@ def main():
     # Restrict bot usage to inside guild channels only.
     bot.add_check(no_dm_check)
     bot.add_check(ban_check)
-
-    # cf_common.initialize needs to run first, so it must be set as the bot's
-    # on_ready event handler rather than an on_ready listener.
-    @discord_common.on_ready_event_once(bot)
-    async def init():
-        clist_api.cache()
-        await cf_common.initialize(args.nodb)
-        asyncio.create_task(discord_common.presence(bot))
-
+    
     bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
 
     @tasks.loop(minutes=5)
