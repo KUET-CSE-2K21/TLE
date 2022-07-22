@@ -3,11 +3,25 @@ import sqlite3
 
 from tle.util import codeforces_api as cf
 
+from os import environ
+from firebase_admin import storage
+
+bucket = None
+STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
+if STORAGE_BUCKET!='None':
+    bucket = storage.bucket()
 
 class CacheDbConn:
     def __init__(self, db_file):
         self.conn = sqlite3.connect(db_file)
         self.create_tables()
+
+    # update the data in firebase
+    def update(self):
+        if bucket==None:
+            return
+        blob = bucket.blob('tle.db')
+        blob.upload_from_filename(constants.USER_DB_FILE_PATH)
 
     def create_tables(self):
         # Table for contests from the contest.list endpoint.
@@ -81,6 +95,7 @@ class CacheDbConn:
                  'VALUES (?, ?, ?, ?, ?, ?, ?)')
         rc = self.conn.executemany(query, contests).rowcount
         self.conn.commit()
+        self.update()
         return rc
 
     def fetch_contests(self):
@@ -100,6 +115,7 @@ class CacheDbConn:
                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         rc = self.conn.executemany(query, list(map(self._squish_tags, problems))).rowcount
         self.conn.commit()
+        self.update()
         return rc
 
     @staticmethod
@@ -125,6 +141,7 @@ class CacheDbConn:
                  'VALUES (?, ?, ?, ?, ?, ?)')
         rc = self.conn.executemany(query, change_tuples).rowcount
         self.conn.commit()
+        self.update()
         return rc
 
     def clear_rating_changes(self, contest_id=None):
@@ -135,6 +152,7 @@ class CacheDbConn:
             query = 'DELETE FROM rating_change WHERE contest_id = ?'
             self.conn.execute(query, (contest_id,))
         self.conn.commit()
+        self.update()
 
     def get_users_with_more_than_n_contests(self, time_cutoff, n):
         query = ('SELECT handle, COUNT(*) AS num_contests '
@@ -183,6 +201,7 @@ class CacheDbConn:
                  'VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
         rc = self.conn.executemany(query, list(map(self._squish_tags, problemset))).rowcount
         self.conn.commit()
+        self.update()
         return rc
 
     def fetch_problems2(self):

@@ -79,8 +79,8 @@ class UserDbConn:
     def update(self):
         if bucket==None:
             return
-        blob = bucket.blob('tle.db')
-        blob.upload_from_filename(constants.USER_DB_FILE_PATH)
+        blob = bucket.blob('tle_cache.db')
+        blob.upload_from_filename(constants.CACHE_DB_FILE_PATH)
 
     def create_tables(self):
         self.conn.execute(
@@ -928,15 +928,6 @@ class UserDbConn:
                     'WHERE guild_id = ?')
             return self.conn.execute(query, (guild_id,)).fetchone() is not None
 
-    def reset_status(self, id):
-        inactive_query = '''
-            UPDATE user_handle
-            SET active = 0
-            WHERE guild_id = ?
-        '''
-        self.conn.execute(inactive_query, (id,))
-        self.conn.commit()
-
     def update_status(self, guild_id: str, active_ids: list):
         placeholders = ', '.join(['?'] * len(active_ids))
         if not active_ids: return 0
@@ -948,6 +939,7 @@ class UserDbConn:
         '''.format(placeholders)
         rc = self.conn.execute(active_query, (*active_ids, guild_id)).rowcount
         self.conn.commit()
+        self.update()
         return rc
 
     # Rated VC stuff
