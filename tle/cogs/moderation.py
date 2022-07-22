@@ -19,7 +19,6 @@ from tle.util import discord_common
 from tle.cogs.handles import HandleCogError
 from tle.cogs.handles import CODECHEF_RATED_RANKS
 from tle.util.codeforces_api import RATED_RANKS as CODEFORCES_RATED_RANKS
-from discord.ext import commands
 from tle.util.codeforces_common import pretty_time_format
 from tle.util import clist_api
 
@@ -77,7 +76,7 @@ class Moderator(commands.Cog):
     async def on_ready(self):
         pass
 
-    @bot.slash_command(name="siadfjasjd")
+    @commands.slash_command(name="siadfjasjd")
     async def first_slash(ctx): 
         await ctx.respond("You executed the slash command!")
 
