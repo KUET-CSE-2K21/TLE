@@ -1156,6 +1156,7 @@ class UserDbConn:
         res = None
         with self.conn:
             res = self.conn.execute(query, (user_id,)).rowcount
+        self.conn.commit()
         self.update()
         return res
 
@@ -1165,6 +1166,7 @@ class UserDbConn:
         res = None
         with self.conn:
             res = self.conn.execute(query, (user_id,)).rowcount
+        self.conn.commit()
         self.update()
         return res
 
