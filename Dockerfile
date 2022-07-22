@@ -4,9 +4,9 @@ WORKDIR /TLE
 
 RUN apt-get update
 RUN apt-get install -y git apt-utils sqlite3
-RUN DEBIAN_FRONTEND="noninteractive" apt-get install software-properties-common
+RUN apt-get --assume-yes install python-software-properties
 RUN add-apt-repository ppa:deadsnakes/ppa
-RUN DEBIAN_FRONTEND="noninteractive" apt-get install python3.9
+RUN apt-get --assume-yes install python3.9
 RUN DEBIAN_FRONTEND="noninteractive" apt-get install -y libcairo2-dev libgirepository1.0-dev libpango1.0-dev pkg-config python3-dev gir1.2-pango-1.0 python3.9-venv libpython3.9-dev libjpeg-dev zlib1g-dev python3-pip
 RUN python3.9 -m pip install poetry
 
