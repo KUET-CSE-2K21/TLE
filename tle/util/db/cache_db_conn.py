@@ -21,8 +21,8 @@ class CacheDbConn:
     def update(self):
         if bucket==None:
             return
-        blob = bucket.blob('tle.db')
-        blob.upload_from_filename(constants.USER_DB_FILE_PATH)
+        blob = bucket.blob('tle_cache.db')
+        blob.upload_from_filename(constants.CACHE_DB_FILE_PATH)
 
     def create_tables(self):
         # Table for contests from the contest.list endpoint.
