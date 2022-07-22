@@ -712,6 +712,14 @@ category = "main"
 optional = false
 python-versions = ">= 3.6"
 
+[[package]]
+name = "discord-py-interactions"
+version = "4.2.1"
+description = "Easy, simple, scalable and modular: a Python API wrapper for interactions."
+category = "main"
+optional = false
+python-versions = ">= 3.9"
+
 [package.dependencies]
 "discord.py" = "*"
 
@@ -1357,6 +1365,10 @@ soupsieve = [
 topggpy = [
     {file = "topggpy-1.4.0-py3-none-any.whl", hash = "sha256:d0c9e329c6613d6a4889ad56295554e60440a5c5025d92ea3bf0b7a816dae27c"},
     {file = "topggpy-1.4.0.tar.gz", hash = "sha256:75a2f3011a073c058238b740989155cc85598250ed605b788b5de28c4314ec04"},
+]
+topggpy = [
+    {file = "discord_py_interactions-4.2.1-py3-none-any.whl", hash = "sha256:81f266518104a5cbcf209e8a26b59283edca60d7fb169cbf95d6b3512e2d3352"},
+    {file = "discord-py-interactions-4.2.1.tar.gz", hash = "sha256:631cb09e6a90dd532c3bafab5ab53613c3e843d15c515d879cb9524808e820f2"},
 ]
 discord-py-slash-command = [
     {file = "discord_py_slash_command-4.2.1-py3-none-any.whl", hash = "sha256:7809a99345b4699cf039b2255a49ef3dec7940c335061ca5e13f0a91b0a76194"},
