@@ -30,7 +30,6 @@ if STORAGE_BUCKET!='None':
 import seaborn as sns
 from discord.ext import commands
 from matplotlib import pyplot as plt
-from discord_slash import SlashCommand, SlashContext
 
 from tle import constants
 from tle.util import codeforces_common as cf_common
@@ -100,7 +99,6 @@ def main():
     intents.members = True
 
     bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
-    slash = SlashCommand(bot, sync_commands=True, sync_on_cog_reload=True)
 
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
     for extension in cogs:
