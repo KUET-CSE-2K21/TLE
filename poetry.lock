@@ -697,6 +697,14 @@ optional = false
 python-versions = ">=3.6"
 
 [[package]]
+name = "discord-py-slash-command"
+version = "4.2.1"
+description = "Easy, simple, scalable and modular: a Python API wrapper for interactions."
+category = "main"
+optional = false
+python-versions = ">= 3.9"
+
+[[package]]
 name = "topggpy"
 version = "1.4.0"
 description = "A simple API wrapper for Top.gg written in Python."
@@ -1349,6 +1357,10 @@ soupsieve = [
 topggpy = [
     {file = "topggpy-1.4.0-py3-none-any.whl", hash = "sha256:d0c9e329c6613d6a4889ad56295554e60440a5c5025d92ea3bf0b7a816dae27c"},
     {file = "topggpy-1.4.0.tar.gz", hash = "sha256:75a2f3011a073c058238b740989155cc85598250ed605b788b5de28c4314ec04"},
+]
+discord-py-slash-command = [
+    {file = "discord_py_slash_command-4.2.1-py3-none-any.whl", hash = "sha256:7809a99345b4699cf039b2255a49ef3dec7940c335061ca5e13f0a91b0a76194"},
+    {file = "discord-py-slash-command-4.2.1.tar.gz", hash = "sha256:bc810db736ae58f607aee1786f90f77bf6f3df03e1b82467aacc68e96e529c01"},
 ]
 typing-extensions = []
 uritemplate = [
