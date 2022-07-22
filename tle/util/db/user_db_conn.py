@@ -10,6 +10,7 @@ from tle.util import codeforces_api as cf
 from os import environ
 from firebase_admin import storage
 from tle import constants
+
 bucket = None
 STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
 if STORAGE_BUCKET!='None':
