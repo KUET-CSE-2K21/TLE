@@ -6,7 +6,6 @@ import os
 import base64
 import discord
 import topgg
-import interactions
 
 from logging.handlers import TimedRotatingFileHandler
 from os import environ
