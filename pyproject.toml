@@ -17,6 +17,7 @@ pytz = "^2021.1"
 topggpy = "^1.4.0"
 disnake = "^2.5.0"
 pycairo = "^1.21.0"
+PyGObject = "^3.42.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^3.0"

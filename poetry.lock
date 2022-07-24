@@ -583,6 +583,17 @@ optional = false
 python-versions = ">=3.7"
 
 [[package]]
+name = "pygobject"
+version = "3.42.2"
+description = "Python bindings for GObject Introspection"
+category = "main"
+optional = false
+python-versions = ">=3.6, <4"
+
+[package.dependencies]
+pycairo = ">=1.16,<2.0"
+
+[[package]]
 name = "pyparsing"
 version = "3.0.9"
 description = "pyparsing module - Classes and methods to define and execute parsing grammars"
@@ -782,7 +793,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "e57b84485d80c632a31a2c5850567db0538f14127b4b6816919c19ec1b3aba7a"
+content-hash = "4c102ec72a5e842e61a22e238cbd38e9450889be4ea5d5dcaba0e677432c7839"
 
 [metadata.files]
 aiocache = [
@@ -1167,6 +1178,7 @@ pycairo = [
     {file = "pycairo-1.21.0-cp39-cp39-win_amd64.whl", hash = "sha256:26b72b813c6f9d495f71057eab89c13e70a21c92360e9265abc049e0a931fa39"},
     {file = "pycairo-1.21.0.tar.gz", hash = "sha256:251907f18a552df938aa3386657ff4b5a4937dde70e11aa042bc297957f4b74b"},
 ]
+pygobject = []
 pyparsing = [
     {file = "pyparsing-3.0.9-py3-none-any.whl", hash = "sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc"},
     {file = "pyparsing-3.0.9.tar.gz", hash = "sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb"},
