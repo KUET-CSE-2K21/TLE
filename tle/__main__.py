@@ -35,6 +35,8 @@ from tle.util import codeforces_common as cf_common
 from tle.util import discord_common, font_downloader
 from tle.util import clist_api
 
+import discord
+from discord.ext import commands as dommands
 
 def setup():
     # Make required directories.
@@ -119,13 +121,14 @@ def main():
             return False
         return True
 
-    bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
+    guild_count = dommands.Bot(intents=intents)
+    guild_count.topggpy = topgg.DBLClient(guild_count, environ.get('TOPGG_TOKEN'))
 
     @tasks.loop(minutes=5)
     async def update_stats():
         try:
-            await bot.topggpy.post_guild_count()
-            logging.info(f"Posted server count ({bot.topggpy.guild_count})")
+            await guild_count.topggpy.post_guild_count()
+            logging.info(f"Posted server count ({guild_count.topggpy.guild_count})")
         except Exception as e:
             logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
 
