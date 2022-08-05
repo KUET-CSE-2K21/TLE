@@ -4,7 +4,7 @@ import distutils.util
 import logging
 import os
 import base64
-import discord
+import disnake
 import topgg
 
 from logging.handlers import TimedRotatingFileHandler
@@ -13,7 +13,6 @@ from pathlib import Path
 from json import loads
 from os import environ
 import firebase_admin
-from discord.ext import tasks
 from firebase_admin import credentials
 from firebase_admin import storage
 
@@ -28,7 +27,7 @@ if STORAGE_BUCKET!='None':
     bucket = storage.bucket()
 
 import seaborn as sns
-from discord.ext import commands
+from disnake.ext import commands
 from matplotlib import pyplot as plt
 
 from tle import constants
@@ -95,8 +94,9 @@ def main():
 
     setup()
     
-    intents = discord.Intents.default()
+    intents = disnake.Intents.default()
     intents.members = True
+    intents.message_content = True
 
     bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
 
@@ -104,7 +104,6 @@ def main():
     for extension in cogs:
         bot.load_extension(f'tle.cogs.{extension}')
     logging.info(f'Cogs loaded: {", ".join(bot.cogs)}')
-
 
     # cf_common.initialize needs to run first, so it must be set as the bot's
     # on_ready event handler rather than an on_ready listener.
@@ -114,20 +113,11 @@ def main():
         await cf_common.initialize(args.nodb)
         asyncio.create_task(discord_common.presence(bot))
 
-    def no_dm_check(ctx):
-        if ctx.guild is None:
-            raise commands.NoPrivateMessage('Private messages not permitted.')
+    async def no_dm_check(inter):
+        if inter.guild is None:
+            await inter.response.send_message('Slash command in DM is not permitted.')
+            return False
         return True
-    
-    def ban_check(ctx):
-        banned = cf_common.user_db.get_banned_user(ctx.author.id)
-        if banned is None:
-            return True
-        return False
-
-    # Restrict bot usage to inside guild channels only.
-    bot.add_check(no_dm_check)
-    bot.add_check(ban_check)
 
     bot.topggpy = topgg.DBLClient(bot, environ.get('TOPGG_TOKEN'))
 
@@ -140,8 +130,11 @@ def main():
             logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
 
     update_stats.start()
+    
+    # Restrict bot usage to inside guild channels only.
+    bot.add_app_command_check(no_dm_check, slash_commands = True)
 
-    bot.add_listener(discord_common.bot_error_handler, name='on_command_error')
+    bot.add_listener(discord_common.bot_error_handler, name='on_slash_command_error')
     bot.run(token)
 
 

@@ -10,7 +10,7 @@ import time
 import re
 import itertools
 import math
-import discord
+import disnake
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -19,7 +19,7 @@ import io
 from tle.cogs.handles import ATCODER_RATED_RANKS, CODECHEF_RATED_RANKS, _CLIST_RESOURCE_SHORT_FORMS, _SUPPORTED_CLIST_RESOURCES
 from collections import defaultdict, namedtuple
 from typing import List
-from discord.ext import commands
+from disnake.ext import commands
 from matplotlib import pyplot as plt
 from matplotlib import patches as patches
 from matplotlib import lines as mlines
@@ -268,7 +268,7 @@ def parse_date(arg):
             raise ValueError
         return dt.datetime.strptime(arg, fmt)
     except ValueError:
-        raise ActivityCogError(f'{arg} is an invalid date argument')
+        raise ActivitiesCogError(f'{arg} is an invalid date argument')
 
 
 
@@ -397,10 +397,10 @@ def get_leaderboard_image(rows, font):
 
     return img
 
-class ActivityCogError(commands.CommandError):
+class ActivitiesCogError(commands.CommandError):
     pass
 
-class Activity(commands.Cog):
+class Activities(commands.Cog, description = "Analyzing activities with graphs and ranklists"):
     def __init__(self, bot):
         self.bot = bot
         self.member_converter = commands.MemberConverter()
@@ -418,25 +418,42 @@ class Activity(commands.Cog):
     @commands.Cog.listener()
     @discord_common.once
     async def on_ready(self):
-        self._watch_rated_vcs_task.start()
+        pass
 
-    @commands.command(brief='List solved problems',
-                  usage='[handles] [+hardest] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [c+marker..] [i+index..]')
-    async def stalk(self, ctx, *args):
-        """Print problems solved by user sorted by time (default) or rating.
-        All submission types are included by default (practice, contest, etc.)
+    @commands.slash_command(description='List solved CodeForces problems')
+    async def stalk(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
         """
+        Print problems solved by user sorted by time (default) or rating.
+        All submission types are included by default (practice, contest, etc.)
+
+        Parameters
+        ----------
+        handles: CodeForces handles (separated by spaces)
+        args: (+hardest) (+practice) (+contest) (+tags...) (r>=rating) (r<=rating)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         (hardest,), args = cf_common.filter_flags(args, ['+hardest'])
         filt = cf_common.SubFilter(False)
         args = filt.parse(args)
-        handles = args or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = args or ('!' + str(inter.author),)
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
         submissions = [await cf.user.status(handle=handle) for handle in handles]
         submissions = [sub for subs in submissions for sub in subs]
         submissions = filt.filter_subs(submissions)
 
         if not submissions:
-            raise ActivityCogError('Submissions not found within the search parameters')
+            return await inter.edit_original_message('Submissions not found within the search parameters')
 
         if hardest:
             submissions.sort(key=lambda sub: (sub.problem.rating or 0, sub.creationTimeSeconds), reverse=True)
@@ -457,13 +474,15 @@ class Activity(commands.Cog):
             return title, embed
 
         pages = [make_page(chunk) for chunk in paginator.chunkify(submissions[:100], 10)]
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message = await inter.original_message(),
+                           wait_time=5 * 60, set_pagenum_footers=True)
 
-    @commands.command(brief='See weekly leaderboard',usage='')
-    async def leaderboard(self, ctx, *args):
+    @commands.slash_command(description='Show weekly leaderboard')
+    async def leaderboard(self, inter):
+        await inter.response.defer()
         handles = {handle for discord_id, handle
-                            in cf_common.user_db.get_handles_for_guild(ctx.guild.id)}
-        wait_msg = await ctx.channel.send('Loading leaderboard, please wait...')
+                            in cf_common.user_db.get_handles_for_guild(inter.guild.id)}
         date = dt.datetime.now()-dt.timedelta(days=7)
         filt = cf_common.SubFilter(False)
         filt.parse('');
@@ -495,32 +514,40 @@ class Activity(commands.Cog):
             row = rows[i]
             row[0] = i+1 
             rows[i] = tuple(row)
-        i = 0
-        await wait_msg.delete()
-        page = 1
-        while i<len(rows):
-            rows_to_display = rows[i : min(i+10, len(rows))]
-            img = get_leaderboard_image(rows_to_display, self.font)
-            buffer = io.BytesIO()
-            img.save(buffer, 'png')
-            buffer.seek(0)
-            msg = "Weekly Leaderboard" if i==0 else None
-            await ctx.send(msg, file=discord.File(buffer, 'leaderboard_p'+str(page)+'.png'))   
-            page+=1
-            i+=10
-            if page==3:
-                break
 
-    @commands.group(brief='Graphs for analyzing activities',
-                    invoke_without_command=True)
-    async def plot(self, ctx):
+        rows_to_display = rows[: min(10, len(rows))]
+        img = get_leaderboard_image(rows_to_display, self.font)
+        buffer = io.BytesIO()
+        img.save(buffer, 'png')
+        buffer.seek(0)
+        msg = "Weekly Leaderboard"
+        await inter.edit_original_message(msg, file=disnake.File(buffer, 'leaderboard_p1.png'))
+
+    @commands.slash_command(description='Graphs for analyzing activities')
+    async def plot(self, inter):
         """Plot various graphs. Wherever handles are accepted it is possible to use a server member's name instead by prefixing it with '!', for name with spaces use "!{name with spaces}" (with quotes)."""
-        await ctx.send_help('plot')
+        pass
     
-    @plot.command(brief='Show speed of solving problems by rating',
-                  usage='[handles...] [+contest] [+virtual] [+outof] [+scatter] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [s=3]')
-    async def speed(self, ctx, *args):
-        """Plot average time spent on problems of particular rating during contest."""
+    @plot.sub_command(description='Show speed of solving problems by rating')
+    async def speed(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Plot average time spent on problems of particular rating during contest.
+
+        Parameters
+        ----------
+        handles: CodeForces handles (separated by spaces)
+        args: (+contest) (+virtual) (+scatter) (r>=rating) (r<=rating)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
 
         (add_scatter,), args = cf_common.filter_flags(args, ['+scatter'])
         filt = cf_common.SubFilter()
@@ -535,8 +562,8 @@ class Activity(commands.Cog):
             else:
                 handles.append(arg)
 
-        handles = handles or ['!' + str(ctx.author)]
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = handles or ['!' + str(inter.author)]
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
         resp = [await cf.user.status(handle=handle) for handle in handles]
         all_solved_subs = [filt.filter_subs(submissions) for submissions in resp]
 
@@ -603,12 +630,29 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Plot of average time spent on a problem')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
+        discord_common.set_author_footer(embed, inter.author)
 
-        await ctx.send(embed=embed, file=discord_file)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot CodeChef rating graph excluding long challenges', usage='[handles...] [+zoom] [+peak] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
-    async def nolongrating(self, ctx, *args: str):
+    @plot.sub_command(description='Plot CodeChef rating graph excluding long challenges')
+    async def nolongrating(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+zoom) (+peak)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+peak'])
         filt = cf_common.SubFilter()
         args = filt.parse(args)
@@ -616,7 +660,7 @@ class Activity(commands.Cog):
         resp = None
         if args:
             handles = args
-            account_ids = await cf_common.resolve_handles(ctx, self.member_converter, handles, resource=resource)
+            account_ids = await cf_common.resolve_handles(inter, self.member_converter, handles, resource=resource)
             data = dict()
             for change in await clist.fetch_rating_changes(account_ids):
                 if change.handle in data:
@@ -645,12 +689,12 @@ class Activity(commands.Cog):
                 resp.append(filtered_changes)
         else:
             handles = []
-            account_id = cf_common.user_db.get_account_id(ctx.author.id, ctx.guild.id, resource)
+            account_id = cf_common.user_db.get_account_id(inter.author.id, inter.guild.id, resource)
             if account_id!=None:
                 resp = [await clist.fetch_rating_changes([account_id])]
-                handles.append(ctx.author.display_name)
+                handles.append(inter.author.display_name)
             else:
-                raise cf_common.HandleNotRegisteredError(ctx.author, resource)
+                raise cf_common.HandleNotRegisteredError(inter.author, resource)
 
         resp = [filt.filter_rating_changes(rating_changes) for rating_changes in resp]
 
@@ -673,8 +717,7 @@ class Activity(commands.Cog):
         plt.axes().set_prop_cycle(gc.rating_color_cycler)
         _plot_rating(resp, resource=resource)
         current_ratings = [rating_changes[-1].newRating if rating_changes else 'Unrated' for rating_changes in resp]
-        if resource!='codeforces.com':
-            handles = [rating_changes[-1].handle for rating_changes in resp]
+        handles = [rating_changes[-1].handle for rating_changes in resp]
         labels = [gc.StrWrap(f'{handle} ({rating})') for handle, rating in zip(handles, current_ratings)]
         plt.legend(labels, loc='upper left')
 
@@ -690,12 +733,31 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Rating graph on '+resource)
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot rating graph', usage='[codechef/atcoder] [handles...] [+zoom] [+peak] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
-    async def rating(self, ctx, *args: str):
-        """Plots Codeforces rating graph for the handles provided."""
+    @plot.sub_command(description='Plot rating graph')
+    async def rating(self, inter, handles: str = None, resource: commands.option_enum(["Codeforces", "Codechef", "Atcoder"]) = "Codeforces", args: str = "", since: str = None, before: str = None):
+        """
+        Plots rating graph for the handles provided.
+
+        Parameters
+        ----------
+        handles: List of handles separated by spaces
+        resource: Competitive Programming platform (default is CodeForces)
+        args: (+zoom) (+peak)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        handles += " " + resource.lower()
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
 
         (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+peak'])
         filt = cf_common.SubFilter()
@@ -711,8 +773,8 @@ class Activity(commands.Cog):
                 resource = key
         resp = None
         if resource=='codeforces.com':
-            handles = args or ('!' + str(ctx.author),)
-            handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+            handles = args or ('!' + str(inter.author),)
+            handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
             resp = [await cf.user.rating(handle=handle) for handle in handles]
             if not any(resp):
                 handles_str = ', '.join(f'`{handle}`' for handle in handles)
@@ -720,13 +782,13 @@ class Activity(commands.Cog):
                     message = f'User {handles_str} is not rated'
                 else:
                     message = f'None of the given users {handles_str} are rated'
-                raise ActivityCogError(message)
+                raise ActivitiesCogError(message)
         else:
             if resource not in ['codechef.com', 'atcoder.jp']:
-                raise ActivityCogError('You cannot plot rating of '+resource+' as of now')
+                raise ActivitiesCogError('You cannot plot rating of '+resource+' as of now')
             if args:
                 handles = args
-                account_ids = await cf_common.resolve_handles(ctx, self.member_converter, handles, resource=resource)
+                account_ids = await cf_common.resolve_handles(inter, self.member_converter, handles, resource=resource)
                 data = dict()
                 for change in await clist.fetch_rating_changes(account_ids):
                     if change.handle in data:
@@ -738,12 +800,12 @@ class Activity(commands.Cog):
                     resp.append(data[key])
             else:
                 handles = []
-                account_id = cf_common.user_db.get_account_id(ctx.author.id, ctx.guild.id, resource)
+                account_id = cf_common.user_db.get_account_id(inter.author.id, inter.guild.id, resource)
                 if account_id!=None:
                     resp = [await clist.fetch_rating_changes([account_id])]
-                    handles.append(ctx.author.display_name)
+                    handles.append(inter.author.display_name)
                 else:
-                    raise cf_common.HandleNotRegisteredError(ctx.author, resource)
+                    raise cf_common.HandleNotRegisteredError(inter.author, resource)
 
         resp = [filt.filter_rating_changes(rating_changes) for rating_changes in resp]
 
@@ -783,18 +845,33 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Rating graph on '+resource)
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
+    @plot.sub_command(description='Plot performance graph')
+    async def performance(self, inter, handles: str = None, resource: commands.option_enum(["Codeforces", "Codechef", "Atcoder"]) = "Codeforces", args: str = "", since: str = None, before: str = None):
+        """
+        Plots performance graph for the handles provided.
 
+        Parameters
+        ----------
+        handles: List of handles separated by spaces
+        resource: Competitive Programming platform (default is CodeForces)
+        args: (+zoom)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
 
-                    
+        if handles == None:
+            handles = '!' + str(inter.author)
+        handles += " " + resource.lower()
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
 
-    @plot.command(brief='Plot performance graph', usage='[codechef/atcoder] [handles...] [+zoom] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy]')
-    async def performance(self, ctx, *args: str):
-        """Plots Codeforces graph for the handles provided."""
-
-        (zoom, peak), args = cf_common.filter_flags(args, ['+zoom' , '+asdfgdsafefsdve'])
+        (zoom,), args = cf_common.filter_flags(args, ['+zoom'])
         filt = cf_common.SubFilter()
         args = filt.parse(args)
         resource = 'codeforces.com'
@@ -808,8 +885,8 @@ class Activity(commands.Cog):
                 resource = key
         resp = None
         if resource=='codeforces.com':
-            handles = args or ('!' + str(ctx.author),)
-            handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+            handles = args or ('!' + str(inter.author),)
+            handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
             resp = [await cf.user.rating(handle=handle) for handle in handles]
             if not any(resp):
                 handles_str = ', '.join(f'`{handle}`' for handle in handles)
@@ -817,13 +894,13 @@ class Activity(commands.Cog):
                     message = f'User {handles_str} is not rated'
                 else:
                     message = f'None of the given users {handles_str} are rated'
-                raise ActivityCogError(message)
+                raise ActivitiesCogError(message)
         else:
             if resource not in ['codechef.com', 'atcoder.jp']:
-                raise ActivityCogError('You cannot plot performance of '+resource+' as of now')
+                raise ActivitiesCogError('You cannot plot performance of '+resource+' as of now')
             if args:
                 handles = args
-                account_ids = await cf_common.resolve_handles(ctx, self.member_converter, handles, resource=resource)
+                account_ids = await cf_common.resolve_handles(inter, self.member_converter, handles, resource=resource)
                 data = dict()
                 for change in await clist.fetch_rating_changes(account_ids, resource=='atcoder.jp'):
                     if change.handle in data:
@@ -835,12 +912,12 @@ class Activity(commands.Cog):
                     resp.append(data[key])
             else:
                 handles = []
-                account_id = cf_common.user_db.get_account_id(ctx.author.id, ctx.guild.id, resource)
+                account_id = cf_common.user_db.get_account_id(inter.author.id, inter.guild.id, resource)
                 if account_id!=None:
                     resp = [await clist.fetch_rating_changes([account_id],  resource=='atcoder.jp')]
-                    handles.append(ctx.author.display_name)
+                    handles.append(inter.author.display_name)
                 else:
-                    raise cf_common.HandleNotRegisteredError(ctx.author, resource)
+                    raise cf_common.HandleNotRegisteredError(inter.author, resource)
         # extract last rating before corrections
         current_ratings = [rating_changes[-1].newRating if rating_changes else 'Unrated' for rating_changes in resp]
         if resource!='codeforces.com':
@@ -854,7 +931,7 @@ class Activity(commands.Cog):
                 message = f'User {handles_str} is not rated'
             else:
                 message = f'None of the given users {handles_str} are rated'
-            raise ActivityCogError(message)
+            raise ActivitiesCogError(message)
 
         plt.clf()
         plt.axes().set_prop_cycle(gc.rating_color_cycler)
@@ -874,25 +951,37 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Performance graph on '+resource)
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot Codeforces extremes graph',
-                  usage='[handles] [+solved] [+unsolved] [+nolegend]')
-    async def extreme(self, ctx, *args: str):
-        """Plots pairs of lowest rated unsolved problem and highest rated solved problem for every
-        contest that was rated for the given user.
+    @plot.sub_command(description='Plot Codeforces extremes graph')
+    async def extreme(self, inter, handles: str = None, args: str = ""):
         """
+        Plots pairs of lowest rated unsolved problem and highest rated solved problem for every
+        contest that was rated for the given user.
+
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+solved) (+unsolved) (+nolegend)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         (solved, unsolved, nolegend), args = cf_common.filter_flags(args, ['+solved', '+unsolved', '+nolegend'])
         legend, = cf_common.negate_flags(nolegend)
         if not solved and not unsolved:
             solved = unsolved = True
 
-        handles = args or ('!' + str(ctx.author),)
-        handle, = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = args or ('!' + str(inter.author),)
+        handle, = await cf_common.resolve_handles(inter, self.member_converter, handles)
         ratingchanges = await cf.user.rating(handle=handle)
         if not ratingchanges:
-            raise ActivityCogError(f'User {handle} is not rated')
+            raise ActivitiesCogError(f'User {handle} is not rated')
 
         contest_ids = [change.contestId for change in ratingchanges]
         subs_by_contest_id = {contest_id: [] for contest_id in contest_ids}
@@ -913,23 +1002,40 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Codeforces extremes graph')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief="Show histogram of solved problems' rating on CF",
-                  usage='[handles] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [c+marker..] [i+index..]')
-    async def solved(self, ctx, *args: str):
-        """Shows a histogram of solved problems' rating on Codeforces for the handles provided.
-        e.g. ;plot solved meooow +contest +virtual +outof +dp"""
+    @plot.sub_command(description="Show histogram of solved problems' rating on CF")
+    async def solved(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Shows a histogram of solved problems' rating on Codeforces for the handles provided.
+        e.g. ;plot solved meooow +contest +virtual +outof +dp
+
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+practice) (+contest) (+virtual) (+tags...) (r>=rating) (r<=rating)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         filt = cf_common.SubFilter()
         args = filt.parse(args)
-        handles = args or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = args or ('!' + str(inter.author),)
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
         resp = [await cf.user.status(handle=handle) for handle in handles]
         all_solved_subs = [filt.filter_subs(submissions) for submissions in resp]
 
         if not any(all_solved_subs):
-            raise ActivityCogError(f'There are no problems within the specified parameters.')
+            raise ActivitiesCogError(f'There are no problems within the specified parameters.')
 
         plt.clf()
         plt.xlabel('Problem rating')
@@ -965,13 +1071,30 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Histogram of problems solved on Codeforces')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Show histogram of solved problems on CF over time',
-                  usage='[handles] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [phase_days=] [c+marker..] [i+index..]')
-    async def hist(self, ctx, *args: str):
-        """Shows the histogram of problems solved on Codeforces over time for the handles provided"""
+    @plot.sub_command(description='Show histogram of solved problems on CF over time')
+    async def hist(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Shows the histogram of problems solved on Codeforces over time for the handles provided
+    
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+practice) (+contest) (+virtual) (+tags...) (r>=rating) (r<=rating)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         filt = cf_common.SubFilter()
         args = filt.parse(args)
         phase_days = 1
@@ -983,16 +1106,16 @@ class Activity(commands.Cog):
                 handles.append(arg)
 
         if phase_days < 1:
-            raise ActivityCogError('Invalid parameters')
+            raise ActivitiesCogError('Invalid parameters')
         phase_time = dt.timedelta(days=phase_days)
 
-        handles = handles or ['!' + str(ctx.author)]
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = handles or ['!' + str(inter.author)]
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
         resp = [await cf.user.status(handle=handle) for handle in handles]
         all_solved_subs = [filt.filter_subs(submissions) for submissions in resp]
 
         if not any(all_solved_subs):
-            raise ActivityCogError(f'There are no problems within the specified parameters.')
+            raise ActivitiesCogError(f'There are no problems within the specified parameters.')
 
         plt.clf()
         plt.xlabel('Time')
@@ -1047,22 +1170,39 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Histogram of number of solved problems over time')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot count of solved CF problems over time',
-                  usage='[handles] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [c+marker..] [i+index..]')
-    async def curve(self, ctx, *args: str):
-        """Plots the count of problems solved over time on Codeforces for the handles provided."""
+    @plot.sub_command(description='Plot count of solved CF problems over time')
+    async def curve(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Plots the count of problems solved over time on Codeforces for the handles provided.
+
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+practice) (+contest) (+virtual) (+outof) (+tags...) (r>=rating) (r<=rating)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         filt = cf_common.SubFilter()
         args = filt.parse(args)
-        handles = args or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles)
+        handles = args or ('!' + str(inter.author),)
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles)
         resp = [await cf.user.status(handle=handle) for handle in handles]
         all_solved_subs = [filt.filter_subs(submissions) for submissions in resp]
 
         if not any(all_solved_subs):
-            raise ActivityCogError(f'There are no problems within the specified parameters.')
+            raise ActivitiesCogError(f'There are no problems within the specified parameters.')
 
         plt.clf()
         plt.xlabel('Time')
@@ -1084,14 +1224,31 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Curve of number of solved problems over time')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Show history of problems solved by rating',
-                  aliases=['chilli'], usage='[handle] [+practice] [+contest] [+virtual] [+outof] [+team] [+tag..] [~tag..] [r>=rating] [r<=rating] [d>=[[dd]mm]yyyy] [d<[[dd]mm]yyyy] [b=10] [s=3] [c+marker..] [i+index..] [+nolegend]')
-    async def scatter(self, ctx, *args):
-        """Plot Codeforces rating overlaid on a scatter plot of problems solved.
-        Also plots a running average of ratings of problems solved in practice."""
+    @plot.sub_command(description='Show history of problems solved by rating')
+    async def scatter(self, inter, handles: str = None, args: str = "", since: str = None, before: str = None):
+        """
+        Plot Codeforces rating overlaid on a scatter plot of problems solved.
+        Also plots a running average of ratings of problems solved in practice.
+
+        Parameters
+        ----------
+        handles: Codechef handles (separated by spaces)
+        args: (+practice) (+contest) (+virtual) (+tags...) (r>=rating) (r<=rating) (+nolegend)
+        since: The first day to be counted (e.g: 13 02 2004)
+        before: The last day to be counted (e.g: 13 02 2004)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        if since != None: args += " d>=" + since.replace(" ", "")
+        if before != None: args += " d<" + before.replace(" ", "")
+        args = tuple(handles.split() + args.split())
+        handles = None
+
         (nolegend,), args = cf_common.filter_flags(args, ['+nolegend'])
         legend, = cf_common.negate_flags(nolegend)
         filt = cf_common.SubFilter()
@@ -1104,14 +1261,14 @@ class Activity(commands.Cog):
                 point_size = int(arg[2:])
             else:
                 if handle:
-                    raise ActivityCogError('Only one handle allowed.')
+                    raise ActivitiesCogError('Only one handle allowed.')
                 handle = arg
 
         if bin_size < 1 or point_size < 1 or point_size > 100:
-            raise ActivityCogError('Invalid parameters')
+            raise ActivitiesCogError('Invalid parameters')
 
-        handle = handle or '!' + str(ctx.author)
-        handle, = await cf_common.resolve_handles(ctx, self.member_converter, (handle,))
+        handle = handle or '!' + str(inter.author)
+        handle, = await cf_common.resolve_handles(inter, self.member_converter, (handle,))
         rating_resp = [await cf.user.rating(handle=handle)]
         rating_resp = [filt.filter_rating_changes(rating_changes) for rating_changes in rating_resp]
         submissions = filt.filter_subs(await cf.user.status(handle=handle))
@@ -1121,7 +1278,7 @@ class Activity(commands.Cog):
                     for sub in submissions]
 
         if not any(submissions):
-            raise ActivityCogError(f'No submissions for user `{handle}`')
+            raise ActivitiesCogError(f'No submissions for user `{handle}`')
 
         solved_by_type = _classify_submissions(submissions)
         regular = extract_time_and_rating(solved_by_type['CONTESTANT'] +
@@ -1150,12 +1307,20 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title=f'Rating vs solved problem rating for {handle}')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    async def _rating_hist(self, ctx, ratings, mode, binsize, title):
-        if mode not in ('log', 'normal'):
-            raise ActivityCogError('Mode should be either `log` or `normal`')
+    @plot.sub_command(description='Show server rating distribution')
+    async def distrib(self, inter):
+        """Plots rating distribution of users in this server"""
+        await inter.response.defer()
+
+        res = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
+        ratings = [cf_user.rating for user_id, cf_user in res
+                   if cf_user.rating is not None]
+
+        binsize=100
+        title='Rating distribution of server members'
 
         ratings = [r for r in ratings if r >= 0]
         assert ratings, 'Cannot histogram plot empty list of ratings'
@@ -1193,7 +1358,7 @@ class Activity(commands.Cog):
 
         plt.xticks(rotation=45)
         plt.xlim(l * binsize - binsize//2, r * binsize + binsize//2)
-        plt.bar(x, height, binsize*0.9, color=colors, linewidth=0, tick_label=label, log=(mode == 'log'))
+        plt.bar(x, height, binsize*0.9, color=colors, linewidth=0, tick_label=label, log=False)
         plt.xlabel('Rating')
         plt.ylabel('Number of users')
 
@@ -1202,32 +1367,26 @@ class Activity(commands.Cog):
 
         embed = discord_common.cf_color_embed(title=title)
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Show server rating distribution')
-    async def distrib(self, ctx):
-        """Plots rating distribution of users in this server"""
-        res = cf_common.user_db.get_cf_users_for_guild(ctx.guild.id)
-        ratings = [cf_user.rating for user_id, cf_user in res
-                   if cf_user.rating is not None]
-        await self._rating_hist(ctx,
-                                ratings,
-                                'normal',
-                                binsize=100,
-                                title='Rating distribution of server members')
+    @plot.sub_command(description='Plot histogram of gudgiting')
+    async def howgud(self, inter, member: disnake.Member = None):
+        """
+        Parameters
+        ----------
+        member: Server member to plot histogram
+        """
+        await inter.response.defer()
 
-    @plot.command(brief='Plot histogram of gudgiting')
-    async def howgud(self, ctx, *members: discord.Member):
-        members = members or (ctx.author,)
-        if len(members) > 5:
-            raise ActivityCogError('Please specify at most 5 gudgitters.')
+        member = member or inter.author
+        member = (member,)
 
         # shift the [-300, 500] gitgud range to center the text
         hist_bins = list(range(-300 - 50, 500 + 50 + 1, 100))
-        deltas = [[x[0] for x in cf_common.user_db.howgud(member.id)] for member in members]
+        deltas = [[x[0] for x in cf_common.user_db.howgud(member.id)] for member in member]
         labels = [gc.StrWrap(f'{member.display_name}: {len(delta)}')
-                  for member, delta in zip(members, deltas)]
+                  for member, delta in zip(member, deltas)]
 
         plt.clf()
         plt.margins(x=0)
@@ -1239,21 +1398,27 @@ class Activity(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Histogram of gudgitting')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Plot distribution of server members by country')
-    async def country(self, ctx, *countries):
-        """Plots distribution of server members by countries. When no countries are specified, plots
-         a bar graph of all members by country. When one or more countries are specified, plots a
-         swarmplot of members by country and rating. Only members with registered handles and
-         countries set on Codeforces are considered.
-         """
+    @plot.sub_command(description='Plot distribution of server members by country')
+    async def country(self, inter, countries: str = ""):
+        """
+        Plots distribution of server members by countries. When no countries are specified, plots a bar graph of all members by country. When one or more countries are specified, plots a swarmplot of members by country and rating. Only members with registered handles and countries set on Codeforces are considered.
+
+        Parameters
+        ----------
+        countries: List of countries to plot distribution (separated by spaces)
+        """
+        await inter.response.defer()
+
+        countries = tuple(countries.split())
+
         max_countries = 8
         if len(countries) > max_countries:
-            raise ActivityCogError(f'At most {max_countries} countries may be specified.')
+            raise ActivitiesCogError(f'At most {max_countries} countries may be specified.')
 
-        users = cf_common.user_db.get_cf_users_for_guild(ctx.guild.id)
+        users = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
         counter = collections.Counter(user.country for _, user in users if user.country)
 
         if not countries:
@@ -1284,7 +1449,7 @@ class Activity(commands.Cog):
             data = [[user.country, user.rating]
                     for _, user in users if user.rating and user.country and user.country in countries]
             if not data:
-                raise ActivityCogError('No rated members from the specified countries are present.')
+                raise ActivitiesCogError('No rated members from the specified countries are present.')
 
             color_map = {rating: f'#{cf.rating2rank(rating).color_embed:06x}' for _, rating in data}
             df = pd.DataFrame(data, columns=['Country', 'Rating'])
@@ -1310,28 +1475,42 @@ class Activity(commands.Cog):
                                                         'country')
 
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
-    @plot.command(brief='Show rating changes by rank', usage='contest_id [+server] [+zoom] [handles..]')
-    async def visualrank(self, ctx, contest_id: int, *args: str):
-        """Plot rating changes by rank. Add handles to specify a handle in the plot.
-        if arguments contains `+server`, it will include just server members and not all codeforces users.
-        Specify `+zoom` to zoom to the neighborhood of handles."""
+    @plot.sub_command(description='Show rating changes by rank')
+    async def visualrank(self, inter, contest_id: int, handles: str = None, args: str = ""):
+        """
+        Plot rating changes by rank. Add handles to specify a handle in the plot.
+        If arguments contains `+server`, it will include just server members and not all codeforces users.
+        Specify `+zoom` to zoom to the neighborhood of handles.
+
+        Parameters
+        ----------
+        contest_id: ID of the contest to plot visualrank
+        handles: Codechef handles to be specified in the plot (separated by spaces)
+        args: (+server) (+zoom)
+        """
+        await inter.response.defer()
+
+        if handles == None:
+            handles = '!' + str(inter.author)
+        args = tuple(handles.split() + args.split())
+        handles = None
 
         args = set(args)
         (in_server, zoom), handles = cf_common.filter_flags(args, ['+server', '+zoom'])
-        handles = await cf_common.resolve_handles(ctx, self.member_converter, handles, mincnt=0, maxcnt=20)
+        handles = await cf_common.resolve_handles(inter, self.member_converter, handles, mincnt=0, maxcnt=20)
 
         rating_changes = await cf.contest.ratingChanges(contest_id=contest_id)
         if in_server:
             guild_handles = set(handle for discord_id, handle
-                                in cf_common.user_db.get_handles_for_guild(ctx.guild.id))
+                                in cf_common.user_db.get_handles_for_guild(inter.guild.id))
             rating_changes = [rating_change for rating_change in rating_changes
                               if rating_change.handle in guild_handles or rating_change.handle in handles]
 
         if not rating_changes:
-            raise ActivityCogError(f'No rating changes for contest `{contest_id}`')
+            raise ActivitiesCogError(f'No rating changes for contest `{contest_id}`')
 
         users_to_mark = {}
         for rating_change in rating_changes:
@@ -1400,8 +1579,8 @@ class Activity(commands.Cog):
 
         embed = discord_common.cf_color_embed(title=title)
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
     @staticmethod
     def _make_contest_pages(contests, title):
@@ -1413,16 +1592,6 @@ class Activity(commands.Cog):
                 embed.add_field(name=name, value=value, inline=False)
             pages.append((title, embed))
         return pages
-
-    async def _send_contest_list(self, ctx, contests, *, title, empty_msg):
-        if contests is None:
-            raise ActivityCogError('Contest list not present')
-        if len(contests) == 0:
-            await ctx.send(embed=discord_common.embed_neutral(empty_msg))
-            return
-        pages = self._make_contest_pages(contests, title)
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=_CONTEST_PAGINATE_WAIT_TIME,
-                           set_pagenum_footers=True)
 
     @staticmethod
     def _get_cf_or_ioi_standings_table(problem_indices, handle_standings, deltas=None, *, mode):
@@ -1660,11 +1829,11 @@ class Activity(commands.Cog):
             try:
                 suffix = int(suffix)
             except:
-                raise ActivityCogError('Invalid contest_id provided.') 
+                raise ActivitiesCogError('Invalid contest_id provided.') 
             contest_name = prefix+str(suffix)
             contests = await clist.search_contest(regex=contest_name, resource=resource, with_problems=True)
             if contests==None or len(contests)==0:
-                raise ActivityCogError('Contest not found.')
+                raise ActivitiesCogError('Contest not found.')
             contest = contests[0] 
         elif resource=='codechef.com':
             contest_name = None
@@ -1682,7 +1851,7 @@ class Activity(commands.Cog):
                 contest_name = str(date.strftime('%B'))+' CodeChef Starters '+str(date.strftime('%Y'))
             contests = await clist.search_contest(regex=contest_name, resource=resource, with_problems=True)
             if contests==None or len(contests)==0:
-                raise ActivityCogError('Contest not found.')
+                raise ActivitiesCogError('Contest not found.')
             contest = contests[0] 
         elif resource=='codingcompetitions.withgoogle.com' or resource=='facebook.com/hackercup':
             year,round = None,None
@@ -1715,29 +1884,28 @@ class Activity(commands.Cog):
                     contest_name = 'Round '+round
 
             if not round:
-                    raise ActivityCogError('Invalid contest_id provided.') 
+                    raise ActivitiesCogError('Invalid contest_id provided.') 
             try:
                 year = int(year)
             except:
-                raise ActivityCogError('Invalid contest_id provided.') 
+                raise ActivitiesCogError('Invalid contest_id provided.') 
             start = dt.datetime(int('20'+str(year)), 1, 1)
             end = dt.datetime(int('20'+str(year+1)), 1, 1)
             date_limit = (start.strftime('%Y-%m-%dT%H:%M:%S'), end.strftime('%Y-%m-%dT%H:%M:%S'))
             contests = await clist.search_contest(regex=contest_name, resource=resource, date_limits=date_limit, with_problems=True)
             if contests==None or len(contests)==0:
-                raise ActivityCogError('Contest not found.')
+                raise ActivitiesCogError('Contest not found.')
             contest = contests[0]
         else:
             contests = await clist.search_contest(regex=contest_id, with_problems=True, order_by='-start')
             if contests==None or len(contests)==0:
-                raise ActivityCogError('Contest not found.')
+                raise ActivitiesCogError('Contest not found.')
             contest = contests[0]
             pass
         return contest
 
-    @commands.command(brief='Show ranklist for given contest',
-        usage='[contest_name_regex / contest_id / -clist_contest_id] [handles...] [+server]')
-    async def ranklist(self, ctx, contest_id: str, *handles: str):
+    @commands.slash_command(description='Show ranklist for given contest')
+    async def ranklist(self, inter, contest_id: str, handles: str = ""):
         """Shows ranklist for the contest with given contest id/name.
         
         # For codeforces ranklist
@@ -1752,11 +1920,19 @@ class Activity(commands.Cog):
         # For google and facebook ranklist
         ;ranklist [kickstart/codejam/hackercup][yy][round]
         Use QR for Qualification Round and WF for World Finals.
+
+        Parameters
+        ----------
+        contest_id: [contest_name_regex / contest_id / -clist_contest_id]
+        handles: List of CF handles to be appeared in the ranklist (separated by spaces)
         """
-        msg = "Generating ranklist, please wait..."
-        wait_msg = await ctx.channel.send(msg)
+
+        await inter.response.defer()
+
+        handles = tuple(handles.split())
+
         resource = 'codeforces.com'
-        timezone = cf_common.get_guild_timezone(ctx.guild.id)
+        timezone = cf_common.get_guild_timezone(inter.guild.id)
         for pattern in _PATTERNS:
             if pattern in contest_id:
                 resource = _PATTERNS[pattern]
@@ -1772,7 +1948,7 @@ class Activity(commands.Cog):
         if resource!='codeforces.com':
             contest = await self.resolve_contest(contest_id=contest_id, resource=resource)
             if contest is None:
-                raise ActivityCogError('Contest not found.') 
+                raise ActivitiesCogError('Contest not found.') 
             contest_id = contest['id']
             resource = contest['resource']
             parsed_at = contest.get('parsed_at', None);
@@ -1784,7 +1960,7 @@ class Activity(commands.Cog):
                     if div in handles:
                         handles.remove(div)
                         selected_divs.append(divs[div])
-            account_ids = await cf_common.resolve_handles(ctx, self.member_converter, handles, maxcnt=None, default_to_all_server=True, resource=contest['resource'])
+            account_ids = await cf_common.resolve_handles(inter, self.member_converter, handles, maxcnt=None, default_to_all_server=True, resource=contest['resource'])
             users = {}
             if resource=='codedrills.io':
                 clist_users = await clist.fetch_user_info(resource, account_ids)
@@ -1813,37 +1989,35 @@ class Activity(commands.Cog):
             if len(standings_to_show)==0:
                 if parsed_at:
                     name = contest['event']
-                    raise ActivityCogError(f'None of the handles are present in the ranklist of `{name}`') 
+                    raise ActivitiesCogError(f'None of the handles are present in the ranklist of `{name}`') 
                 else:
-                    raise ActivityCogError('Ranklist for this contest is being parsed, please come back later.') 
+                    raise ActivitiesCogError('Ranklist for this contest is being parsed, please come back later.') 
             division = selected_divs[0] if len(selected_divs)==1 else None
             problemset = contest.get('problems', None);
             pages = self._make_clist_standings_pages(standings_to_show, problemset=problemset, division=division)
-            await wait_msg.delete()
-            await ctx.channel.send(embed=self._make_contest_embed_for_ranklist(contest=clist.format_contest(contest), timezone=timezone, parsed_at=parsed_at))
-            paginator.paginate(self.bot, ctx.channel, pages, wait_time=_STANDINGS_PAGINATE_WAIT_TIME)
+            await inter.edit_original_message(embed=self._make_contest_embed_for_ranklist(contest=clist.format_contest(contest), timezone=timezone, parsed_at=parsed_at))
+            await paginator.paginate(self.bot, 'text', inter, pages, wait_time=_STANDINGS_PAGINATE_WAIT_TIME)
         else:
             if (int(contest_id) == 4):
-                await ctx.channel.send("```I\'m not doing that! (╯°□°）╯︵ ┻━┻ ```""")
+                await inter.edit_original_message("```I\'m not doing that! (╯°□°）╯︵ ┻━┻ ```""")
             else:
-                handles = await cf_common.resolve_handles(ctx, self.member_converter, handles, maxcnt=None, default_to_all_server=True)
+                handles = await cf_common.resolve_handles(inter, self.member_converter, handles, maxcnt=None, default_to_all_server=True)
                 contest = cf_common.cache2.contest_cache.get_contest(contest_id)
                 ranklist = None
                 try:
                     ranklist = cf_common.cache2.ranklist_cache.get_ranklist(contest)
                 except cache_system2.RanklistNotMonitored:
                     if contest.phase == 'BEFORE':
-                        raise ActivityCogError(f'Contest `{contest.id} | {contest.name}` has not started')
+                        raise ActivitiesCogError(f'Contest `{contest.id} | {contest.name}` has not started')
                     ranklist = await cf_common.cache2.ranklist_cache.generate_ranklist(contest.id,
                                                                                     fetch_changes=True)
-                await wait_msg.delete()
-                await ctx.channel.send(embed=self._make_contest_embed_for_ranklist(ranklist, timezone=timezone))
-                await self._show_ranklist(channel=ctx.channel, contest_id=contest_id, handles=handles, ranklist=ranklist)
+                await inter.edit_original_message(embed=self._make_contest_embed_for_ranklist(ranklist, timezone=timezone))
+                await self._show_ranklist(inter = inter, contest_id=contest_id, handles=handles, ranklist=ranklist)
 
-    async def _show_ranklist(self, channel, contest_id: int, handles: List[str], ranklist, vc: bool = False, delete_after: float = None):
+    async def _show_ranklist(self, inter, contest_id: int, handles: List[str], ranklist, vc: bool = False):
         contest = cf_common.cache2.contest_cache.get_contest(contest_id)
         if ranklist is None:
-            raise ActivityCogError('No ranklist to show')
+            raise ActivitiesCogError('No ranklist to show')
 
         handle_standings = []
         for handle in handles:
@@ -1863,9 +2037,9 @@ class Activity(commands.Cog):
         if not handle_standings:
             error = f'None of the handles are present in the ranklist of `{contest.name}`'
             if vc:
-                await channel.send(embed=discord_common.embed_alert(error), delete_after=delete_after)
+                await inter.edit_original_message(embed=discord_common.embed_alert(error))
                 return
-            raise ActivityCogError(error)
+            raise ActivitiesCogError(error)
 
         handle_standings.sort(key=lambda data: data[1].rank)
         deltas = None
@@ -1874,116 +2048,15 @@ class Activity(commands.Cog):
 
         problem_indices = [problem.index for problem in ranklist.problems]
         pages = self._make_standings_pages(contest, problem_indices, handle_standings, deltas)
-        paginator.paginate(self.bot, channel, pages, wait_time=_STANDINGS_PAGINATE_WAIT_TIME, delete_after=delete_after)
+        await paginator.paginate(self.bot, 'text', inter, pages,
+                           message=await inter.original_message(),
+                           wait_time=_STANDINGS_PAGINATE_WAIT_TIME)
 
-    @staticmethod
-    def _make_vc_rating_changes_embed(guild, contest_id, change_by_handle):
-        """Make an embed containing a list of rank changes and rating changes for ratedvc participants.
-        """
-        contest = cf_common.cache2.contest_cache.get_contest(contest_id)
-        user_id_handle_pairs = cf_common.user_db.get_handles_for_guild(guild.id)
-        member_handle_pairs = [(guild.get_member(int(user_id)), handle)
-                               for user_id, handle in user_id_handle_pairs]
-        member_change_pairs = [(member, change_by_handle[handle])
-                               for member, handle in member_handle_pairs
-                               if member is not None and handle in change_by_handle]
-
-        member_change_pairs.sort(key=lambda pair: pair[1].newRating, reverse=True)
-        rank_to_role = {role.name: role for role in guild.roles}
-
-        def rating_to_displayable_rank(rating):
-            rank = cf.rating2rank(rating).title
-            role = rank_to_role.get(rank)
-            return role.mention if role else rank
-
-        rank_changes_str = []
-        for member, change in member_change_pairs:
-            if len(cf_common.user_db.get_vc_rating_history(member.id)) == 1:
-                # If this is the user's first rated contest.
-                old_role = 'Unrated'
-            else:
-                old_role = rating_to_displayable_rank(change.oldRating)
-            new_role = rating_to_displayable_rank(change.newRating)
-            if new_role != old_role:
-                rank_change_str = (f'{member.mention} [{discord.utils.escape_markdown(change.handle)}]({cf.PROFILE_BASE_URL}{change.handle}): {old_role} '
-                                   f'\N{LONG RIGHTWARDS ARROW} {new_role}')
-                rank_changes_str.append(rank_change_str)
-
-        member_change_pairs.sort(key=lambda pair: pair[1].newRating - pair[1].oldRating,
-                                 reverse=True)
-        rating_changes_str = []
-        for member, change in member_change_pairs:
-            delta = change.newRating - change.oldRating
-            rating_change_str = (f'{member.mention} [{discord.utils.escape_markdown(change.handle)}]({cf.PROFILE_BASE_URL}{change.handle}): {change.oldRating} '
-                            f'\N{HORIZONTAL BAR} **{delta:+}** \N{LONG RIGHTWARDS ARROW} '
-                            f'{change.newRating}')
-            rating_changes_str.append(rating_change_str)
-
-        desc = '\n'.join(rank_changes_str) or 'No rank changes'
-        embed = discord_common.cf_color_embed(title=contest.name, url=contest.url, description=desc)
-        embed.set_author(name='VC Results')
-        embed.add_field(name='Rating Changes',
-                        value='\n'.join(rating_changes_str) or 'No rating changes',
-                        inline=False)
-        return embed
-
-    async def _watch_rated_vc(self, vc_id: int):
-        vc = cf_common.user_db.get_rated_vc(vc_id)
-        channel_id = cf_common.user_db.get_rated_vc_channel(vc.guild_id)
-        if channel_id is None:
-            raise ActivityCogError('No Rated VC channel')
-        channel = self.bot.get_channel(int(channel_id))
-        member_ids = cf_common.user_db.get_rated_vc_user_ids(vc_id)
-        handles = [cf_common.user_db.get_handle(member_id, channel.guild.id) for member_id in member_ids]
-        handle_to_member_id = {handle : member_id for handle, member_id in zip(handles, member_ids)}
-        now = time.time()
-        ranklist = await cf_common.cache2.ranklist_cache.generate_vc_ranklist(vc.contest_id, handle_to_member_id)
-
-        async def has_running_subs(handle):
-            return [sub for sub in await cf.user.status(handle=handle)
-                    if sub.verdict == 'TESTING' and
-                       sub.problem.contestId == vc.contest_id and
-                       sub.relativeTimeSeconds <= vc.finish_time - vc.start_time]
-
-        running_subs_flag = any([await has_running_subs(handle) for handle in handles])
-        if running_subs_flag:
-            msg = 'Some submissions are still being judged'
-            await channel.send(embed=discord_common.embed_alert(msg), delete_after=_WATCHING_RATED_VC_WAIT_TIME)
-        if now < vc.finish_time or running_subs_flag:
-            # Display current standings
-            await channel.send(embed=self._make_contest_embed_for_vc_ranklist(ranklist, vc.start_time, vc.finish_time), delete_after=_WATCHING_RATED_VC_WAIT_TIME)
-            await self._show_ranklist(channel, vc.contest_id, handles, ranklist=ranklist, vc=True, delete_after=_WATCHING_RATED_VC_WAIT_TIME)
-            return
-        rating_change_by_handle = {}
-        RatingChange = namedtuple('RatingChange', 'handle oldRating newRating')
-        for handle, member_id in zip(handles, member_ids):
-            delta = ranklist.delta_by_handle.get(handle)
-            if delta is None:  # The user did not participate.
-                cf_common.user_db.remove_last_ratedvc_participation(member_id)
-                continue
-            old_rating = cf_common.user_db.get_vc_rating(member_id)
-            new_rating = old_rating + delta
-            rating_change_by_handle[handle] = RatingChange(handle=handle, oldRating=old_rating, newRating=new_rating)
-            cf_common.user_db.update_vc_rating(vc_id, member_id, new_rating)
-        cf_common.user_db.finish_rated_vc(vc_id)
-        await channel.send(embed=self._make_vc_rating_changes_embed(channel.guild, vc.contest_id, rating_change_by_handle))
-        await self._show_ranklist(channel, vc.contest_id, handles, ranklist=ranklist, vc=True)
-
-    @tasks.task_spec(name='WatchRatedVCs',
-                     waiter=tasks.Waiter.fixed_delay(_WATCHING_RATED_VC_WAIT_TIME))
-    async def _watch_rated_vcs_task(self, _):
-        ongoing_rated_vcs = cf_common.user_db.get_ongoing_rated_vc_ids()
-        if ongoing_rated_vcs is None:
-            return
-        for rated_vc_id in ongoing_rated_vcs:
-            await self._watch_rated_vc(rated_vc_id)
-
-    @discord_common.send_error_if(ActivityCogError, cache_system2.CacheError,
+    @discord_common.send_error_if(ActivitiesCogError, cache_system2.CacheError,
                                   cf_common.FilterError, rl.RanklistError,
                                   cf_common.ResolveHandleError)
-    async def cog_command_error(self, ctx, error):
+    async def cog_slash_command_error(self, inter, error):
         pass
 
-
 def setup(bot):
-    bot.add_cog(Activity(bot))
+    bot.add_cog(Activities(bot))

@@ -4,9 +4,9 @@ from typing import List
 import math
 import time
 import asyncio
-import discord
+import disnake
 
-from discord.ext import commands
+from disnake.ext import commands
 from matplotlib import pyplot as plt
 from collections import defaultdict, namedtuple
 
@@ -34,7 +34,6 @@ class CodeforcesCogError(commands.CommandError):
 
 _DUEL_INVALIDATE_TIME = 2 * 60
 _DUEL_EXPIRY_TIME = 5 * 60
-_DUEL_RATING_DELTA = -400
 _DUEL_OFFICIAL_CUTOFF = 3500
 _DUEL_NO_DRAW_TIME = 10 * 60
 _ELO_CONSTANT = 60
@@ -94,54 +93,56 @@ def complete_duel(duelid, guild_id, win_status, winner, loser, finish_time, scor
                     value=f'{loser_r} -> {loser_r - delta}', inline=False)
     return embed
 
-def check_if_allow_self_register(ctx):
-    if not constants.ALLOW_DUEL_SELF_REGISTER:
-        raise CodeforcesCogError('Self Registration is not enabled.')
-    return True
-
-class Codeforces(commands.Cog):
+class Codeforces(commands.Cog, description = "Ask for or challenge your friends with recommended problems"):
     def __init__(self, bot):
         self.bot = bot
         self.converter = commands.MemberConverter()
 
-    async def _validate_gitgud_status(self, ctx, delta):
+    async def _validate_gitgud_status(self, inter, delta):
         if delta is not None and delta % 100 != 0:
-            raise CodeforcesCogError('Delta must be a multiple of 100.')
+            await inter.edit_original_message('Delta must be a multiple of 100.')
+            return False
 
         if delta is not None and (delta < _GITGUD_MAX_NEG_DELTA_VALUE or delta > _GITGUD_MAX_POS_DELTA_VALUE):
-            raise CodeforcesCogError(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.')
+            await inter.edit_original_message(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.')
+            return False
 
-        user_id = ctx.message.author.id
+        user_id = inter.author.id
         active = cf_common.user_db.check_challenge(user_id)
         if active is not None:
             _, _, name, contest_id, index, _ = active
             url = f'{cf.CONTEST_BASE_URL}{contest_id}/problem/{index}'
-            raise CodeforcesCogError(f'You have an active challenge {name} at {url}')
+            await inter.edit_original_message(f'You have an active challenge {name} at {url}')
+            return False
+        return True
 
-    async def _gitgud(self, ctx, handle, problem, delta):
+    async def _gitgud(self, inter, handle, problem, delta):
         # The caller of this function is responsible for calling `_validate_gitgud_status` first.
-        user_id = ctx.author.id
+        user_id = inter.author.id
 
         issue_time = datetime.datetime.now().timestamp()
         rc = cf_common.user_db.new_challenge(user_id, issue_time, problem, delta)
         if rc != 1:
-            raise CodeforcesCogError('Your challenge has already been added to the database!')
+            return await inter.edit_original_message('Your challenge has already been added to the database!')
 
         title = f'{problem.index}. {problem.name}'
         desc = cf_common.cache2.contest_cache.get_contest(problem.contestId).name
-        embed = discord.Embed(title=title, url=problem.url, description=desc)
+        embed = disnake.Embed(title=title, url=problem.url, description=desc)
         embed.add_field(name='Rating', value=problem.rating)
-        await ctx.send(f'Challenge problem for `{handle}`', embed=embed)
+        await inter.edit_original_message(f'Challenge problem for `{handle}`', embed=embed)
 
-    @commands.command(brief='Upsolve a problem')
+    @commands.slash_command(description='Request an unsolved problem from a contest you participated in')
     @cf_common.user_guard(group='gitgud')
-    async def upsolve(self, ctx, choice: int = -1):
-        """Request an unsolved problem from a contest you participated in
-        delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 |
-        points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |
+    async def upsolve(self, inter, choice: int = -1):
         """
-        await self._validate_gitgud_status(ctx,delta=None)
-        handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
+        Parameters
+        ----------
+        choice: Index of the problem to upsolve
+        """
+        await inter.response.defer()
+
+        if not await self._validate_gitgud_status(inter,delta=None): return
+        handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
         user = cf_common.user_db.fetch_cf_user(handle)
         rating = round(user.effective_rating, -2)
         resp = await cf.user.rating(handle=handle)
@@ -153,14 +154,14 @@ class Codeforces(commands.Cog):
                     and ((prob.rating - rating) >= _GITGUD_MAX_NEG_DELTA_VALUE and (prob.rating - rating) <= _GITGUD_MAX_POS_DELTA_VALUE)]
 
         if not problems:
-            raise CodeforcesCogError('Problems not found within the search parameters')
+            return await inter.edit_original_message('Problems not found within the search parameters')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds, reverse=True)
 
         if choice > 0 and choice <= len(problems):
             problem = problems[choice - 1]
-            await self._gitgud(ctx, handle, problem, problem.rating - rating)
+            await self._gitgud(inter, handle, problem, problem.rating - rating)
         else:
             problems = problems[:100]
               
@@ -169,31 +170,32 @@ class Codeforces(commands.Cog):
                 return data
 
             def make_page(chunk, pi, num):
-                title = f'Select a problem to upsolve (1-{num}):'
+                title = f'Select a problem to upsolve(1-{num}).\nThen type `/upsolve + <problem index>` to get started.'
                 msg = '\n'.join(make_line(10*pi+i, prob) for i, prob in enumerate(chunk))
                 embed = discord_common.cf_color_embed(description=msg)
                 return title, embed
                   
             pages = [make_page(chunk, pi, len(problems)) for pi, chunk in enumerate(paginator.chunkify(problems, 10))]
-            paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)   
+            await paginator.paginate(self.bot, 'edit', inter, pages,
+                               message = await inter.original_message(),
+                               wait_time=5 * 60, set_pagenum_footers=True)   
 
-    @commands.command(brief='Recommend a problem',
-                      usage='[tags...] [-tags...] [rating]')
+    @commands.slash_command(description='Recommend a CodeForces problem')
     @cf_common.user_guard(group='gitgud')
-    async def gimme(self, ctx, *args):
-        handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
-        rating = round(cf_common.user_db.fetch_cf_user(handle).effective_rating, -2)
-        tags  = []
-        notags= []
-        for arg in args:
-            if arg.isdigit():
-                rating = int(arg)
-            else:
-                if arg[0] == '-':
-                    notags.append(arg[1:])
-                else:
-                    tags.append(arg)
-                    
+    async def gimme(self, inter, rating: commands.Range[800, 3500] = None, tags: str = ""):
+        """
+        Parameters
+        ----------
+        tags: Tags of them problem (separated by spaces)
+        rating: Rating of the problem to be recommended
+        """
+        await inter.response.defer()
+
+        if rating % 100 != 0: return await inter.edit_original_message('Problem rating should be a multiple of 100.')
+
+        handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
+        if rating == None: rating = round(cf_common.user_db.fetch_cf_user(handle).effective_rating, -2)
+        tags = list(tags.split())
 
         submissions = await cf.user.status(handle=handle)
         solved = {sub.problem.name for sub in submissions if sub.verdict == 'OK'}
@@ -203,11 +205,9 @@ class Codeforces(commands.Cog):
                     not cf_common.is_contest_writer(prob.contestId, handle)]
         if tags:
             problems = [prob for prob in problems if prob.tag_matches(tags)]
-        if notags:
-            problems = [prob for prob in problems if (prob.tag_matches_or(notags) == None)]
 
         if not problems:
-            raise CodeforcesCogError('Problems not found within the search parameters')
+            return await inter.edit_original_message('Problems not found within the search parameters')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds)
@@ -217,32 +217,30 @@ class Codeforces(commands.Cog):
 
         title = f'{problem.index}. {problem.name}'
         desc = cf_common.cache2.contest_cache.get_contest(problem.contestId).name
-        embed = discord.Embed(title=title, url=problem.url, description=desc)
+        embed = disnake.Embed(title=title, url=problem.url, description=desc)
         embed.add_field(name='Rating', value=problem.rating)
         if tags:
             tagslist = ', '.join(problem.tag_matches(tags))
             embed.add_field(name='Matched tags', value=tagslist)
-        await ctx.send(f'Recommended problem for `{handle}`', embed=embed)
+        await inter.edit_original_message(f'Recommended problem for `{handle}`', embed=embed)
 
-    @commands.command(brief='Create a mashup', usage='[handles] [+tags] [?[-]delta]')
-    async def mashup(self, ctx, *args):
-        """Create a mashup contest using problems within -200 and +400 of average rating of handles provided.
-        Add tags with "+" before them.
+    @commands.slash_command(description='Create a mashup contest')
+    async def mashup(self, inter, handles: str = None, tags: str = "", delta: commands.option_enum(["-300", "-200", "-100", "0", "+100", "+200", "+300"]) = "0"):
         """
-        delta = 100
-        handles = [arg for arg in args if arg[0] != '+' and arg[0]!='?']
-        tags = [arg[1:] for arg in args if arg[0] == '+' and len(arg) > 1]
-        deltaStr = [arg[1:] for arg in args if arg[0] == '?' and len(arg) > 1]
-        if len(deltaStr) > 1:
-            raise CodeforcesCogError('Only one delta argument is allowed')
-        if len(deltaStr) == 1:
-            try:
-                delta += round(int(deltaStr[0]), -2)
-            except ValueError:
-                raise CodeforcesCogError('delta could not be interpreted as number')
+        Parameters
+        ----------
+        handles: List of handles (separated by spaces)
+        tags: Tags of the problems (separated by spaces)
+        delta: Ratings difference to average ratings.
+        """
+        await inter.response.defer()
+
+        if handles == None: handles = f"!{str(inter.author)}"
+        handles = tuple(handles.split())
+        tags = list(tags.split())
+        delta = int(delta)
         
-        handles = handles or ('!' + str(ctx.author),)
-        handles = await cf_common.resolve_handles(ctx, self.converter, handles)
+        handles = await cf_common.resolve_handles(inter, self.converter, handles)
         resp = [await cf.user.status(handle=handle) for handle in handles]
         submissions = [sub for user in resp for sub in user]
         solved = {sub.problem.name for sub in submissions}
@@ -259,7 +257,7 @@ class Codeforces(commands.Cog):
             problems = [prob for prob in problems if prob.tag_matches(tags)]
 
         if len(problems) < 4:
-            raise CodeforcesCogError('Problems not found within the search parameters')
+            return await inter.edit_original_message('Problems not found within the search parameters')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds)
@@ -277,23 +275,31 @@ class Codeforces(commands.Cog):
         msg = '\n'.join(f'{"ABCD"[i]}: [{p.name}]({p.url}) [{p.rating}]' for i, p in enumerate(problems))
         str_handles = '`, `'.join(handles)
         embed = discord_common.cf_color_embed(description=msg)
-        await ctx.send(f'Mashup contest for `{str_handles}`', embed=embed)
+        await inter.edit_original_message(f'Mashup contest for `{str_handles}`', embed=embed)
 
-    @commands.command(brief='Challenge yourself and earn points')
+    @commands.slash_command(description='Challenge yourself and earn points')
     @cf_common.user_guard(group='gitgud')
-    async def gitgud(self, ctx, delta: int = 0):
-        """Request a problem for gitgud points.
+    async def gitgud(self, inter, delta: commands.option_enum(["-300", "-200", "-100", "0", "+100", "+200", "+300"]) = "0"):
+        """
+        Request a problem for gitgud points.
         delta  | -300 | -200 | -100 |  0  | +100 | +200 | +300 |
         points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |
+        
+        Parameters
+        ---------
+        delta: Rating difference to average rating.
         """
-        await self._validate_gitgud_status(ctx, delta)
-        handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
+        await inter.response.defer()
+
+        delta = int(delta)
+        if not await self._validate_gitgud_status(inter, delta): return
+        handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
         user = cf_common.user_db.fetch_cf_user(handle)
         rating = round(user.effective_rating, -2)
         rating = max(rating, 1200)
         submissions = await cf.user.status(handle=handle)
         solved = {sub.problem.name for sub in submissions}
-        noguds = cf_common.user_db.get_noguds(ctx.message.author.id)
+        noguds = cf_common.user_db.get_noguds(inter.author.id)
 
         problems = [prob for prob in cf_common.cache2.problem_cache.problems
                     if (prob.rating == rating + delta and
@@ -306,101 +312,106 @@ class Codeforces(commands.Cog):
 
         problems = list(filter(check, problems))
         if not problems:
-            raise CodeforcesCogError('No problem to assign')
+            return await inter.edit_original_message('No problem to assign')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds)
 
         choice = max(random.randrange(len(problems)) for _ in range(2))
-        await self._gitgud(ctx, handle, problems[choice], delta)
+        await self._gitgud(inter, handle, problems[choice], delta)
 
-    @commands.command(brief='Report challenge completion')
+    @commands.slash_command(description='Report challenge completion')
     @cf_common.user_guard(group='gitgud')
-    async def gotgud(self, ctx):
-        handle, = await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
-        user_id = ctx.message.author.id
+    async def gotgud(self, inter):
+        await inter.response.defer()
+
+        handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
+        user_id = inter.author.id
         active = cf_common.user_db.check_challenge(user_id)
         if not active:
-            raise CodeforcesCogError(f'You do not have an active challenge')
+            return await inter.edit_original_message(f'You do not have an active challenge')
 
         submissions = await cf.user.status(handle=handle)
         solved = {sub.problem.name for sub in submissions if sub.verdict == 'OK'}
 
         challenge_id, issue_time, name, contestId, index, delta = active
         if not name in solved:
-            raise CodeforcesCogError('You haven\'t completed your challenge.')
+            return await inter.edit_original_message('You haven\'t completed your challenge.')
 
         delta = _GITGUD_SCORE_DISTRIB[delta // 100 + 3]
         finish_time = int(datetime.datetime.now().timestamp())
         rc = cf_common.user_db.complete_challenge(user_id, challenge_id, finish_time, delta)
         if rc == 1:
             duration = cf_common.pretty_time_format(finish_time - issue_time)
-            await ctx.send(f'Challenge completed in {duration}. {handle} gained {delta} points.')
+            await inter.edit_original_message(f'Challenge completed in {duration}. {handle} gained {delta} points.')
         else:
-            await ctx.send('You have already claimed your points')
+            await inter.edit_original_message('You have already claimed your points')
 
-    @commands.command(brief='Skip challenge')
+    @commands.slash_command(description='Skip challenge')
     @cf_common.user_guard(group='gitgud')
-    async def nogud(self, ctx):
-        await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author),))
-        user_id = ctx.message.author.id
+    async def nogud(self, inter):
+        await inter.response.defer()
+
+        await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
+        user_id = inter.author.id
         active = cf_common.user_db.check_challenge(user_id)
         if not active:
-            raise CodeforcesCogError(f'You do not have an active challenge')
+            return await inter.edit_original_message(f'You do not have an active challenge')
 
         challenge_id, issue_time, name, contestId, index, delta = active
         finish_time = int(datetime.datetime.now().timestamp())
         if finish_time - issue_time < _GITGUD_NO_SKIP_TIME:
             skip_time = cf_common.pretty_time_format(issue_time + _GITGUD_NO_SKIP_TIME - finish_time)
-            await ctx.send(f'Think more. You can skip your challenge in {skip_time}.')
-            return
+            return await inter.edit_original_message(f'Think more. You can skip your challenge in {skip_time}.')
         cf_common.user_db.skip_challenge(user_id, challenge_id, Gitgud.NOGUD)
-        await ctx.send(f'Challenge skipped.')
+        await inter.edit_original_message(f'Challenge skipped.')
 
-    @commands.command(brief='Force skip a challenge')
+    @commands.slash_command(description='Force skip a challenge')
     @cf_common.user_guard(group='gitgud')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def _nogud(self, ctx, member: discord.Member):
+    async def _nogud(self, inter, member: disnake.Member):
+        """
+        Parameters
+        ----------
+        member: Member to skip challenge
+        """
+        await inter.response.defer()
+
         active = cf_common.user_db.check_challenge(member.id)
         rc = cf_common.user_db.skip_challenge(member.id, active[0], Gitgud.FORCED_NOGUD)
         if rc == 1:
-            await ctx.send(f'Challenge skip forced.')
+            await inter.edit_original_message(f'Challenge skip forced.')
         else:
-            await ctx.send(f'Failed to force challenge skip.')
+            await inter.edit_original_message(f'Failed to force challenge skip.')
 
-    @commands.command(brief='Recommend a contest', usage='[handles...] [+pattern...] [?message_urls...]')
-    async def vc(self, ctx, *args: str):
-        """Recommends a contest based on Codeforces rating of the handle provided.
-        e.g ;vc mblazev c1729 +global +hello +goodbye +avito
-        
-        You can also get vc recommendations for a group of people who have reacted to a particular message.
-        ;vc ?<Here comes the link of message> +educational
+    @commands.slash_command(description='Recommend a contest')
+    async def vc(self, inter, handles: str = None, pattern: str = ""):
         """
-        markers = [x for x in args if x[0] == '+']
-        messages = [x[1:] for x in args if x[0]=='?']
-        handles = [x for x in args if x[0] != '+' and x[0]!='?'] or ['!' + str(ctx.author),]
-        if messages:
-            message_converter = commands.MessageConverter()
-            for message in messages:
-                try:
-                    message = await message_converter.convert(ctx, message)
-                except commands.errors.CommandError:
-                    raise CodeforcesCogError('Failed to resolve message_url')
-                for reaction in message.reactions:
-                    users = await reaction.users().flatten()
-                    for user in users:
-                        handles.append('!'+str(user))
-        handles = await cf_common.resolve_handles(ctx, self.converter, handles, maxcnt=25)
+        Recommends a contest based on Codeforces rating of the handle provided.
+        e.g ;vc mblazev c1729 +global +hello +goodbye +avito
+
+        Parameters
+        ----------
+        handles: List of handles (separated by spaces)
+        pattern: e.g: global edu div3 goodbye (separated by spaces)
+        """
+        await inter.response.defer()
+
+        pattern = list(pattern.split())
+        if handles == None: handles = f"!{str(inter.author)}"
+        handles = list(handles.split())
+
+        handles = await cf_common.resolve_handles(inter, self.converter, handles, maxcnt=25)
         info = await cf.user.info(handles=handles)
         contests = cf_common.cache2.contest_cache.get_contests_in_phase('FINISHED')
 
-        if not markers:
+        if not pattern:
             divr = sum(user.effective_rating for user in info) / len(handles)
             div1_indicators = ['div1', 'global', 'avito', 'goodbye', 'hello']
-            markers = ['div3'] if divr < 1600 else ['div2'] if divr < 2100 else div1_indicators
+            pattern = ['div3'] if divr < 1600 else ['div2'] if divr < 2100 else div1_indicators
 
         recommendations = {contest.id for contest in contests if
-                           contest.matches(markers) and
+                           contest.matches(pattern) and
                            not cf_common.is_nonstandard_contest(contest) and
                            not any(cf_common.is_contest_writer(contest.id, handle)
                                        for handle in handles)}
@@ -410,7 +421,7 @@ class Codeforces(commands.Cog):
         recommendations -= visited_contests
 
         if not recommendations:
-            raise CodeforcesCogError('Unable to recommend a contest')
+            return await inter.edit_original_message('Unable to recommend a contest')
 
         recommendations = list(recommendations)
         random.shuffle(recommendations)
@@ -427,72 +438,57 @@ class Codeforces(commands.Cog):
             return message, embed
 
         pages = [make_page(chunk) for chunk in paginator.chunkify(contests, 5)]
-        paginator.paginate(self.bot, ctx.channel, pages, wait_time=5 * 60, set_pagenum_footers=True)
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message = await inter.original_message(),
+                           wait_time=5 * 60, set_pagenum_footers=True)
 
-    @commands.group(brief='Compete coding with your friend',
-                invoke_without_command=True)
-    async def duel(self, ctx):
+    @commands.slash_command(description='Compete coding with your friend')
+    async def duel(self, inter):
         """Group for commands pertaining to duels"""
-        await ctx.send_help(ctx.command)
+        pass
 
-    @duel.command(brief='Register a duelist')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def register(self, ctx, member: discord.Member):
+    async def register(self, member: disnake.Member):
         """Register a duelist"""
         rc = cf_common.user_db.register_duelist(member.id)
-        if rc == 0:
-            raise CodeforcesCogError(
-                f'{member.display_name} is already a registered duelist')
-        await ctx.send(f'{member.mention} successfully registered as a duelist.')
 
-    @duel.command(brief='Register yourself as a duelist')
-    @commands.check(check_if_allow_self_register)
-    async def selfregister(self, ctx):
-        """Register yourself as a duelist"""
-        if not cf_common.user_db.get_handle(ctx.author.id, ctx.guild.id):
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you cannot register yourself as a duelist without setting your handle.')
-        rc = cf_common.user_db.register_duelist(ctx.author.id)
-        if rc == 0:
-            raise CodeforcesCogError(
-                f'{ctx.author.display_name} is already a registered duelist')
-        await ctx.send(f'{ctx.author.mention} successfully registered as a duelist')
+    @duel.sub_command(description='Challenge another server member to a duel')
+    async def challenge(self, inter, opponent: disnake.Member, rating: int = None):
+        """
+        Parameters
+        ----------
+        opponent: A server member you want to challenge
+        rating: Rating of the problem to challenge to
+        """
+        await inter.response.defer()
 
-    @duel.command(brief='Challenge to a duel')
-    async def challenge(self, ctx, opponent: discord.Member, rating: int = None):
-        """Challenge another server member to a duel. Problem difficulty will be the lesser of duelist ratings minus 400. You can alternatively specify a different rating. The duel will be unrated if specified rating is above the default value. The challenge expires if ignored for 5 minutes."""
-        challenger_id = ctx.author.id
+        challenger_id = inter.author.id
         challengee_id = opponent.id
 
-        await cf_common.resolve_handles(ctx, self.converter, ('!' + str(ctx.author), '!' + str(opponent)))
+        await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author), '!' + str(opponent)))
         userids = [challenger_id, challengee_id]
         handles = [cf_common.user_db.get_handle(
-            userid, ctx.guild.id) for userid in userids]
+            userid, inter.guild.id) for userid in userids]
         submissions = [await cf.user.status(handle=handle) for handle in handles]
 
         if not cf_common.user_db.is_duelist(challenger_id):
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you are not a registered duelist!')
+            await self.register(inter.author)
         if not cf_common.user_db.is_duelist(challengee_id):
-            raise CodeforcesCogError(
-                f'{opponent.display_name} is not a registered duelist!')
+            await self.register(opponent)
+
         if challenger_id == challengee_id:
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you cannot challenge yourself!')
+            return await inter.edit_original_message(
+                f'{inter.author.mention}, you cannot challenge yourself!')
         if cf_common.user_db.check_duel_challenge(challenger_id):
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you are currently in a duel!')
+            return await inter.edit_original_message(
+                f'{inter.author.mention}, you are currently in a duel!')
         if cf_common.user_db.check_duel_challenge(challengee_id):
-            raise CodeforcesCogError(
+            return await inter.edit_original_message(
                 f'{opponent.display_name} is currently in a duel!')
 
         users = [cf_common.user_db.fetch_cf_user(handle) for handle in handles]
         lowest_rating = min(user.rating or 0 for user in users)
-        suggested_rating = max(
-            round(lowest_rating, -2) + _DUEL_RATING_DELTA, 500)
+        suggested_rating = max(round(lowest_rating, -2) - 200, 800)
         rating = round(rating, -2) if rating else suggested_rating
-        unofficial = rating > _DUEL_OFFICIAL_CUTOFF #suggested_rating 
-        dtype = DuelType.UNOFFICIAL if unofficial else DuelType.OFFICIAL
 
         solved = {
             sub.problem.name for subs in submissions for sub in subs if sub.verdict != 'COMPILATION_ERROR'}
@@ -509,10 +505,9 @@ class Codeforces(commands.Cog):
             if problems:
                 break
 
-        rstr = f'{rating} rated ' if rating else ''
         if not problems:
-            raise CodeforcesCogError(
-                f'No unsolved {rstr}problems left for {ctx.author.mention} vs {opponent.mention}.')
+            return await inter.edit_original_message(
+                f'No unsolved {rating} rated problems left for {inter.author.mention} vs {opponent.mention}.')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds)
@@ -522,69 +517,74 @@ class Codeforces(commands.Cog):
 
         issue_time = datetime.datetime.now().timestamp()
         duelid = cf_common.user_db.create_duel(
-            challenger_id, challengee_id, issue_time, problem, dtype)
+            challenger_id, challengee_id, issue_time, problem, DuelType.OFFICIAL)
 
-        ostr = 'an **unofficial**' if unofficial else 'a'
-        await ctx.send(f'{ctx.author.mention} is challenging {opponent.mention} to {ostr} {rstr}duel!')
+        await inter.edit_original_message(f'{inter.author.mention} is challenging {opponent.mention} to a {rating} rated duel!\nType `/duel accept` to accept or `/duel decline` to decline the challenge.')
         await asyncio.sleep(_DUEL_EXPIRY_TIME)
         if cf_common.user_db.cancel_duel(duelid, Duel.EXPIRED):
-            await ctx.send(f'{ctx.author.mention}, your request to duel {opponent.display_name} has expired!')
+            await inter.channel.send(f'{inter.author.mention}, your request to duel {opponent.display_name} has expired!')
 
-    @duel.command(brief='Decline a duel')
-    async def decline(self, ctx):
-        active = cf_common.user_db.check_duel_decline(ctx.author.id)
+    @duel.sub_command(description='Decline a duel')
+    async def decline(self, inter):
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_decline(inter.author.id)
         if not active:
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you are not being challenged!')
+            return await inter.edit_original_message(
+                f'{inter.author.mention}, you are not being challenged!')
 
         duelid, challenger = active
-        challenger = ctx.guild.get_member(challenger)
+        challenger = inter.guild.get_member(challenger)
         cf_common.user_db.cancel_duel(duelid, Duel.DECLINED)
-        await ctx.send(f'{ctx.author.display_name} declined a challenge by {challenger.mention}.')
+        await inter.edit_original_message(f'{inter.author.mention} declined a challenge by {challenger.mention}.')
 
-    @duel.command(brief='Withdraw a challenge')
-    async def withdraw(self, ctx):
-        active = cf_common.user_db.check_duel_withdraw(ctx.author.id)
+    @duel.sub_command(description='Withdraw a challenge')
+    async def withdraw(self, inter):
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_withdraw(inter.author.id)
         if not active:
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you are not challenging anyone.')
+            return await inter.edit_original_message(
+                f'{inter.author.mention}, you are not challenging anyone.')
 
         duelid, challengee = active
-        challengee = ctx.guild.get_member(challengee)
+        challengee = inter.guild.get_member(challengee)
         cf_common.user_db.cancel_duel(duelid, Duel.WITHDRAWN)
-        await ctx.send(f'{ctx.author.mention} withdrew a challenge to {challengee.display_name}.')
+        await inter.edit_original_message(f'{inter.author.mention} withdrew a challenge to {challengee.display_name}.')
 
-    @duel.command(brief='Accept a duel')
-    async def accept(self, ctx):
-        active = cf_common.user_db.check_duel_accept(ctx.author.id)
+    @duel.sub_command(description='Accept a duel')
+    async def accept(self, inter):
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_accept(inter.author.id)
         if not active:
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you are not being challenged.')
+            return await inter.edit_original_message(f'{inter.author.mention}, you are not being challenged.')
 
         duelid, challenger_id, name = active
-        challenger = ctx.guild.get_member(challenger_id)
-        await ctx.send(f'Duel between {challenger.mention} and {ctx.author.mention} starting in 15 seconds!')
+        challenger = inter.guild.get_member(challenger_id)
+        await inter.edit_original_message(f'Duel between {challenger.mention} and {inter.author.mention} starting in 15 seconds!')
         await asyncio.sleep(15)
 
         start_time = datetime.datetime.now().timestamp()
         rc = cf_common.user_db.start_duel(duelid, start_time)
         if rc != 1:
             raise CodeforcesCogError(
-                f'Unable to start the duel between {challenger.mention} and {ctx.author.mention}.')
+                f'Unable to start the duel between {challenger.mention} and {inter.author.mention}.')
 
         problem = cf_common.cache2.problem_cache.problem_by_name[name]
         title = f'{problem.index}. {problem.name}'
         desc = cf_common.cache2.contest_cache.get_contest(
             problem.contestId).name
-        embed = discord.Embed(title=title, url=problem.url, description=desc)
+        embed = disnake.Embed(title=title, url=problem.url, description=desc)
         embed.add_field(name='Rating', value=problem.rating)
-        await ctx.send(f'Starting duel: {challenger.mention} vs {ctx.author.mention}', embed=embed)
+        await inter.channel.send(f'Starting duel: {challenger.mention} vs {inter.author.mention}', embed=embed)
 
-    @duel.command(brief='Complete a duel')
-    async def complete(self, ctx):
-        active = cf_common.user_db.check_duel_complete(ctx.author.id)
-        if not active:
-            raise CodeforcesCogError(f'{ctx.author.mention}, you are not in a duel.')
+    @duel.sub_command(description='Complete a duel')
+    async def complete(self, inter):
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_complete(inter.author.id)
+        if not active: return await inter.edit_original_message(f'{inter.author.mention}, you are not in a duel.')
 
         duelid, challenger_id, challengee_id, start_time, problem_name, contest_id, index, dtype = active
 
@@ -592,7 +592,7 @@ class Codeforces(commands.Cog):
         TESTING = -1
 
         async def get_solve_time(userid):
-            handle = cf_common.user_db.get_handle(userid, ctx.guild.id)
+            handle = cf_common.user_db.get_handle(userid, inter.guild.id)
             subs = [sub for sub in await cf.user.status(handle=handle)
                     if (sub.verdict == 'OK' or sub.verdict == 'TESTING')
                     and sub.problem.contestId == contest_id
@@ -608,11 +608,10 @@ class Codeforces(commands.Cog):
         challengee_time = await get_solve_time(challengee_id)
 
         if challenger_time == TESTING or challengee_time == TESTING:
-            await ctx.send(f'Wait a bit, {ctx.author.mention}. A submission is still being judged.')
-            return
+            return await inter.edit_original_message(f'Wait a bit, {inter.author.mention}. A submission is still being judged.')
 
-        challenger = ctx.guild.get_member(challenger_id)
-        challengee = ctx.guild.get_member(challengee_id)
+        challenger = inter.guild.get_member(challenger_id)
+        challengee = inter.guild.get_member(challengee_id)
 
         if challenger_time and challengee_time:
             if challenger_time != challengee_time:
@@ -621,66 +620,70 @@ class Codeforces(commands.Cog):
                 winner = challenger if challenger_time < challengee_time else challengee
                 loser = challenger if challenger_time > challengee_time else challengee
                 win_status = Winner.CHALLENGER if winner == challenger else Winner.CHALLENGEE
-                embed = complete_duel(duelid, ctx.guild.id, win_status, winner, loser, min(
+                embed = complete_duel(duelid, inter.guild.id, win_status, winner, loser, min(
                     challenger_time, challengee_time), 1, dtype)
-                await ctx.send(f'Both {challenger.mention} and {challengee.mention} solved it but {winner.mention} was {diff} faster!', embed=embed)
+                await inter.edit_original_message(f'Both {challenger.mention} and {challengee.mention} solved it but {winner.mention} was {diff} faster!', embed=embed)
             else:
-                embed = complete_duel(duelid, ctx.guild.id, Winner.DRAW,
+                embed = complete_duel(duelid, inter.guild.id, Winner.DRAW,
                                       challenger, challengee, challenger_time, 0.5, dtype)
-                await ctx.send(f"{challenger.mention} and {challengee.mention} solved the problem in the exact same amount of time! It's a draw!", embed=embed)
+                await inter.edit_original_message(f"{challenger.mention} and {challengee.mention} solved the problem in the exact same amount of time! It's a draw!", embed=embed)
 
         elif challenger_time:
-            embed = complete_duel(duelid, ctx.guild.id, Winner.CHALLENGER,
+            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER,
                                   challenger, challengee, challenger_time, 1, dtype)
-            await ctx.send(f'{challenger.mention} beat {challengee.mention} in a duel!', embed=embed)
+            await inter.edit_original_message(f'{challenger.mention} beat {challengee.mention} in a duel!', embed=embed)
         elif challengee_time:
-            embed = complete_duel(duelid, ctx.guild.id, Winner.CHALLENGEE,
+            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE,
                                   challengee, challenger, challengee_time, 1, dtype)
-            await ctx.send(f'{challengee.mention} beat {challenger.mention} in a duel!', embed=embed)
+            await inter.edit_original_message(f'{challengee.mention} beat {challenger.mention} in a duel!', embed=embed)
         else:
-            await ctx.send('Nobody solved the problem yet.')
+            await inter.edit_original_message('Nobody solved the problem yet.')
 
-    @duel.command(brief='Offer/Accept a draw')
-    async def draw(self, ctx):
-        active = cf_common.user_db.check_duel_draw(ctx.author.id)
-        if not active:
-            raise CodeforcesCogError(f'{ctx.author.mention}, you are not in a duel.')
+    @duel.sub_command(description='Offer/Accept a draw')
+    async def draw(self, inter):
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_draw(inter.author.id)
+        if not active: return await inter.edit_original_message(f'{inter.author.mention}, you are not in a duel.')
 
         duelid, challenger_id, challengee_id, start_time, dtype = active
         now = datetime.datetime.now().timestamp()
         if now - start_time < _DUEL_NO_DRAW_TIME:
             draw_time = cf_common.pretty_time_format(
                 start_time + _DUEL_NO_DRAW_TIME - now)
-            await ctx.send(f'Think more {ctx.author.mention}. You can offer a draw in {draw_time}.')
-            return
+            return await inter.edit_original_message(f'Think more {inter.author.mention}. You can offer a draw in {draw_time}.')
 
         if not duelid in self.draw_offers:
-            self.draw_offers[duelid] = ctx.author.id
-            offeree_id = challenger_id if ctx.author.id != challenger_id else challengee_id
-            offeree = ctx.guild.get_member(offeree_id)
-            await ctx.send(f'{ctx.author.mention} is offering a draw to {offeree.mention}!')
-            return
+            self.draw_offers[duelid] = inter.author.id
+            offeree_id = challenger_id if inter.author.id != challenger_id else challengee_id
+            offeree = inter.guild.get_member(offeree_id)
+            return await inter.edit_original_message(f'{inter.author.mention} is offering a draw to {offeree.mention}!')
 
-        if self.draw_offers[duelid] == ctx.author.id:
-            await ctx.send(f'{ctx.author.mention}, you\'ve already offered a draw.')
-            return
+        if self.draw_offers[duelid] == inter.author.id:
+            return await inter.edit_original_message(f'{inter.author.mention}, you\'ve already offered a draw.')
 
-        offerer = ctx.guild.get_member(self.draw_offers[duelid])
-        embed = complete_duel(duelid, ctx.guild.id, Winner.DRAW,
-                              offerer, ctx.author, now, 0.5, dtype)
-        await ctx.send(f'{ctx.author.mention} accepted draw offer by {offerer.mention}.', embed=embed)
+        offerer = inter.guild.get_member(self.draw_offers[duelid])
+        embed = complete_duel(duelid, inter.guild.id, Winner.DRAW,
+                              offerer, inter.author, now, 0.5, dtype)
+        await inter.edit_original_message(f'{inter.author.mention} accepted draw offer by {offerer.mention}.', embed=embed)
 
-    @duel.command(brief='Show duelist profile')
-    async def profile(self, ctx, member: discord.Member = None):
-        member = member or ctx.author
+    @duel.sub_command(description='Show duelist profile')
+    async def profile(self, inter, member: disnake.Member = None):
+        """
+        Parameters
+        ----------
+        member: Member to show duelist profile
+        """
+        await inter.response.defer()
+
+        member = member or inter.author
         if not cf_common.user_db.is_duelist(member.id):
-            raise CodeforcesCogError(
-                f'{member.display_name} is not a registered duelist.')
+            self.register(member)
 
-        user = get_cf_user(member.id, ctx.guild.id)
+        user = get_cf_user(member.id, inter.guild.id)
         rating = cf_common.user_db.get_duel_rating(member.id)
         desc = f'Duelist profile of {rating2rank(rating).title} {member.mention} aka **[{user.handle}]({user.url})**'
-        embed = discord.Embed(
+        embed = disnake.Embed(
             description=desc, color=rating2rank(rating).color_embed)
         embed.add_field(name='Rating', value=rating, inline=True)
 
@@ -702,7 +705,7 @@ class Codeforces(commands.Cog):
                 finish_time - start_time, shorten=True, always_seconds=True)
             when = cf_common.days_ago(start_time)
             loser_id = challenger if member.id != challenger else challengee
-            loser = get_cf_user(loser_id, ctx.guild.id)
+            loser = get_cf_user(loser_id, inter.guild.id)
             problem = cf_common.cache2.problem_cache.problem_by_name[problem_name]
             if loser is None:
                 return f'**[{problem.name}]({problem.url})** [{problem.rating}] versus unknown {when} in {duel_time}'
@@ -717,7 +720,7 @@ class Codeforces(commands.Cog):
                             value=duel_to_string(wins[-1]), inline=False)
 
         embed.set_thumbnail(url=f'{user.titlePhoto}')
-        await ctx.send(embed=embed)
+        await inter.edit_original_message(embed=embed)
 
     def _paginate_duels(self, data, message, guild_id, show_id):
         def make_line(entry):
@@ -760,33 +763,51 @@ class Codeforces(commands.Cog):
 
         return [make_page(chunk) for chunk in paginator.chunkify(data, 7)]
 
-    @duel.command(brief='Print user dueling history')
-    async def history(self, ctx, member: discord.Member = None):
-        member = member or ctx.author
+    @duel.sub_command(description='Print user dueling history')
+    async def history(self, inter, member: disnake.Member = None):
+        """
+        Parameters
+        ----------
+        member: Member to show dueling history
+        """
+        await inter.response.defer()
+
+        member = member or inter.author
         data = cf_common.user_db.get_duels(member.id)
         pages = self._paginate_duels(
-            data, f'dueling history of {member.display_name}', ctx.guild.id, False)
-        paginator.paginate(self.bot, ctx.channel, pages,
+            data, f'dueling history of {member.display_name}', inter.guild.id, False)
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message=await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
-    @duel.command(brief='Print recent duels')
-    async def recent(self, ctx):
+    @duel.sub_command(description='Print recent duels')
+    async def recent(self, inter):
+        await inter.response.defer()
+
         data = cf_common.user_db.get_recent_duels()
         pages = self._paginate_duels(
-            data, 'list of recent duels', ctx.guild.id, True)
-        paginator.paginate(self.bot, ctx.channel, pages,
+            data, 'list of recent duels', inter.guild.id, True)
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message=await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
-    @duel.command(brief='Print list of ongoing duels')
-    async def ongoing(self, ctx, member: discord.Member = None):
+    @duel.sub_command(description='Print list of ongoing duels')
+    async def ongoing(self, inter, member: disnake.Member = None):
+        """
+        Parameters
+        ----------
+        member: Member in an ongoing duel
+        """
+        await inter.response.defer()
+
         def make_line(entry):
             start_time, name, challenger, challengee = entry
             problem = cf_common.cache2.problem_cache.problem_by_name[name]
             now = datetime.datetime.now().timestamp()
             when = cf_common.pretty_time_format(
                 now - start_time, shorten=True, always_seconds=True)
-            challenger = get_cf_user(challenger, ctx.guild.id)
-            challengee = get_cf_user(challengee, ctx.guild.id)
+            challenger = get_cf_user(challenger, inter.guild.id)
+            challengee = get_cf_user(challengee, inter.guild.id)
             return f'[{challenger.handle}]({challenger.url}) vs [{challengee.handle}]({challengee.url}): [{name}]({problem.url}) [{problem.rating}] {when}'
 
         def make_page(chunk):
@@ -795,21 +816,24 @@ class Codeforces(commands.Cog):
             embed = discord_common.cf_color_embed(description=log_str)
             return message, embed
 
-        member = member or ctx.author
+        member = member or inter.author
         data = cf_common.user_db.get_ongoing_duels()
         if not data:
-            raise CodeforcesCogError('There are no ongoing duels.')
+            return await inter.edit_original_message('There are no ongoing duels.')
 
         pages = [make_page(chunk) for chunk in paginator.chunkify(data, 7)]
-        paginator.paginate(self.bot, ctx.channel, pages,
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message=await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
-    @duel.command(brief="Show duelists")
-    async def ranklist(self, ctx):
+    @duel.sub_command(description="Show duelists")
+    async def ranklist(self, inter):
         """Show the list of duelists with their duel rating."""
-        users = [(ctx.guild.get_member(user_id), rating)
+        await inter.response.defer()
+
+        users = [(inter.guild.get_member(user_id), rating)
                  for user_id, rating in cf_common.user_db.get_duelists()]
-        users = [(member, cf_common.user_db.get_handle(member.id, ctx.guild.id), rating)
+        users = [(member, cf_common.user_db.get_handle(member.id, inter.guild.id), rating)
                  for member, rating in users
                  if member is not None and cf_common.user_db.get_num_duel_completed(member.id) > 0]
 
@@ -834,55 +858,70 @@ class Codeforces(commands.Cog):
             return 'List of duelists', embed
 
         if not users:
-            raise CodeforcesCogError('There are no active duelists.')
+            return await inter.edit_original_message('There are no active duelists.')
 
         pages = [make_page(chunk, k) for k, chunk in enumerate(
             paginator.chunkify(users, _PER_PAGE))]
-        paginator.paginate(self.bot, ctx.channel, pages,
+        await paginator.paginate(self.bot, 'edit', inter, pages,
+                           message = await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
-    async def invalidate_duel(self, ctx, duelid, challenger_id, challengee_id):
+    async def invalidate_duel(self, inter, duelid, challenger_id, challengee_id):
         rc = cf_common.user_db.invalidate_duel(duelid)
         if rc == 0:
-            raise CodeforcesCogError(f'Unable to invalidate duel {duelid}.')
+            return await inter.edit_original_message(f'Unable to invalidate duel {duelid}.')
 
-        challenger = ctx.guild.get_member(challenger_id)
-        challengee = ctx.guild.get_member(challengee_id)
-        await ctx.send(f'Duel between {challenger.mention} and {challengee.mention} has been invalidated.')
+        challenger = inter.guild.get_member(challenger_id)
+        challengee = inter.guild.get_member(challengee_id)
+        await inter.edit_original_message(f'Duel between {challenger.mention} and {challengee.mention} has been invalidated.')
 
-    @duel.command(brief='Invalidate the duel')
-    async def invalidate(self, ctx):
-        """Declare your duel invalid. Use this if you've solved the problem prior to the duel.
-        You can only use this functionality during the first 120 seconds of the duel."""
-        active = cf_common.user_db.check_duel_complete(ctx.author.id)
-        if not active:
-            raise CodeforcesCogError(f'{ctx.author.mention}, you are not in a duel.')
+    @duel.sub_command(description='Invalidate the duel')
+    async def invalidate(self, inter):
+        """
+        Declare your duel invalid. Use this if you've solved the problem prior to the duel.
+        You can only use this functionality during the first 120 seconds of the duel.
+        """
+        await inter.response.defer()
+
+        active = cf_common.user_db.check_duel_complete(inter.author.id)
+        if not active: return await inter.edit_original_message(f'{inter.author.mention}, you are not in a duel.')
 
         duelid, challenger_id, challengee_id, start_time, _, _, _, _ = active
         if datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME:
-            raise CodeforcesCogError(
-                f'{ctx.author.mention}, you can no longer invalidate your duel.')
-        await self.invalidate_duel(ctx, duelid, challenger_id, challengee_id)
+            return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.')
+        await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
 
-    @duel.command(brief='Invalidate a duel', usage='[duelist]')
+    @duel.sub_command(description='Invalidate a duel')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def _invalidate(self, ctx, member: discord.Member):
-        """Declare an ongoing duel invalid."""
+    async def _invalidate(self, inter, member: disnake.Member):
+        """
+        Declare an ongoing duel invalid.
+        
+        Parameters
+        ----------
+        member: Member whose ongoing duel is going to be invalidated
+        """
+        await inter.response.defer()
+
         active = cf_common.user_db.check_duel_complete(member.id)
-        if not active:
-            raise CodeforcesCogError(f'{member.display_name} is not in a duel.')
+        if not active: return await inter.edit_original_message(f'{member.display_name} is not in a duel.')
 
         duelid, challenger_id, challengee_id, _, _, _, _, _ = active
-        await self.invalidate_duel(ctx, duelid, challenger_id, challengee_id)
+        await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
 
-    @duel.command(brief='Plot rating', usage='[duelist]')
-    async def rating(self, ctx, *members: discord.Member):
-        """Plot duelist's rating."""
-        members = members or (ctx.author, )
-        if len(members) > 5:
-            raise CodeforcesCogError(f'Cannot plot more than 5 duelists at once.')
+    @duel.sub_command(description='Plot duel rating')
+    async def rating(self, inter, member: disnake.Member = None):
+        """
+        Plot duelist's rating.
 
-        duelists = [member.id for member in members]
+        Parameters
+        ----------
+        member: Member to plot duel rating
+        """
+        await inter.response.defer()
+
+        if member == None: member = inter.author
+        duelists = [member.id]
         duels = cf_common.user_db.get_complete_official_duels()
         rating = dict()
         plot_data = defaultdict(list)
@@ -909,7 +948,7 @@ class Codeforces(commands.Cog):
                 time_tick += 1
 
         if time_tick == 0:
-            raise CodeforcesCogError(f'Nothing to plot.')
+            return await inter.edit_original_message(f'Nothing to plot.')
 
         plt.clf()
         # plot at least from mid gray to mid purple
@@ -934,7 +973,7 @@ class Codeforces(commands.Cog):
 
         labels = [
             gc.StrWrap('{} ({})'.format(
-                ctx.guild.get_member(duelist).display_name,
+                inter.guild.get_member(duelist).display_name,
                 rating_data[-1][1]))
             for duelist, rating_data in plot_data.items()
         ]
@@ -943,12 +982,12 @@ class Codeforces(commands.Cog):
         discord_file = gc.get_current_figure_as_file()
         embed = discord_common.cf_color_embed(title='Duel rating graph')
         discord_common.attach_image(embed, discord_file)
-        discord_common.set_author_footer(embed, ctx.author)
-        await ctx.send(embed=embed, file=discord_file)
+        discord_common.set_author_footer(embed, inter.author)
+        await inter.edit_original_message(embed=embed, file=discord_file)
 
     @discord_common.send_error_if(CodeforcesCogError, cf_common.ResolveHandleError,
                                   cf_common.FilterError)
-    async def cog_command_error(self, ctx, error):
+    async def cog_slash_command_error(self, inter, error):
         pass
 
 

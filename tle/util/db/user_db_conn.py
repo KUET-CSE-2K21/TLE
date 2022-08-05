@@ -3,7 +3,7 @@ from enum import IntEnum
 from collections import namedtuple
 from typing import List
 
-from discord.ext import commands
+from disnake.ext import commands
 
 from tle.util import codeforces_api as cf
 
@@ -15,8 +15,6 @@ bucket = None
 STORAGE_BUCKET = str(environ.get('STORAGE_BUCKET'))
 if STORAGE_BUCKET!='None':
     bucket = storage.bucket()
-
-_DEFAULT_VC_RATING = 100
 
 class Gitgud(IntEnum):
     GOTGUD = 0
@@ -41,9 +39,6 @@ class Winner(IntEnum):
 class DuelType(IntEnum):
     UNOFFICIAL = 0
     OFFICIAL = 1
-class RatedVC(IntEnum):
-    ONGOING = 0
-    FINISHED = 1
 
 
 class UserDbError(commands.CommandError):
@@ -169,13 +164,6 @@ class UserDbConn:
                 PRIMARY KEY("user_id")
             )
         ''')
-        self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS lists(
-                guild_id TEXT,
-                name TEXT,
-                PRIMARY KEY(guild_id, name)
-            )
-        ''')
         self.conn.execute(
             'CREATE TABLE IF NOT EXISTS list_handles ('
             'list    TEXT,'
@@ -197,26 +185,6 @@ class UserDbConn:
             )
         ''')
         self.conn.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS bans (
-                user_id TEXT PRIMARY KEY
-            )
-            '''
-        )
-        self.conn.execute(
-            'CREATE TABLE IF NOT EXISTS starboard ('
-            'guild_id     TEXT PRIMARY KEY,'
-            'channel_id   TEXT'
-            ')'
-        )
-        self.conn.execute(
-            'CREATE TABLE IF NOT EXISTS starboard_message ('
-            'original_msg_id    TEXT PRIMARY KEY,'
-            'starboard_msg_id   TEXT,'
-            'guild_id           TEXT'
-            ')'
-        )
-        self.conn.execute(
             'CREATE TABLE IF NOT EXISTS rankup ('
             'guild_id     TEXT PRIMARY KEY,'
             'channel_id   TEXT'
@@ -227,41 +195,6 @@ class UserDbConn:
             'guild_id     TEXT PRIMARY KEY'
             ')'
         )
-
-        # Rated VCs stuff:
-        self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS "rated_vcs" (
-                "id"             INTEGER PRIMARY KEY AUTOINCREMENT,
-                "contest_id"     INTEGER NOT NULL,
-                "start_time"     REAL,
-                "finish_time"    REAL,
-                "status"         INTEGER,
-                "guild_id"       TEXT
-            )
-        ''')
-
-        # TODO: Do we need to explicitly specify the fk constraint or just depend on the middleware?
-        self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS "rated_vc_users" (
-                "vc_id"          INTEGER,
-                "user_id"        TEXT NOT NULL,
-                "rating"         INTEGER,
-
-                CONSTRAINT fk_vc
-                    FOREIGN KEY (vc_id)
-                    REFERENCES rated_vcs(id),
-
-                PRIMARY KEY(vc_id, user_id)
-            )
-        ''')
-
-        self.conn.execute('''
-            CREATE TABLE IF NOT EXISTS rated_vc_settings (
-                guild_id TEXT PRIMARY KEY,
-                channel_id TEXT
-            )
-        ''')
-
 
     # Helper functions.
 
@@ -546,6 +479,18 @@ class UserDbConn:
         self.update()
         return res1 or res2
 
+    def remove_guild(self, guild_id):
+        query = ('DELETE FROM user_handle '
+                 'WHERE guild_id = ?')
+        self.conn.execute(query, (guild_id,))
+        query = ('DELETE FROM clist_account_ids '
+                 'WHERE guild_id = ?')
+        self.conn.execute(query, (guild_id,))
+        self.disable_auto_role_update(guild_id)
+        self.clear_reminder_settings(guild_id)
+        self.clear_rankup_channel(guild_id)
+        self.update()
+
     def get_handles_for_guild(self, guild_id):
         query = ('SELECT user_id, handle '
                  'FROM user_handle '
@@ -601,64 +546,6 @@ class UserDbConn:
         self.conn.execute(query, (guild_id,))
         self.conn.commit()
         self.update()
-
-    def get_starboard(self, guild_id):
-        query = ('SELECT channel_id '
-                 'FROM starboard '
-                 'WHERE guild_id = ?')
-        return self.conn.execute(query, (guild_id,)).fetchone()
-
-    def set_starboard(self, guild_id, channel_id):
-        query = ('INSERT OR REPLACE INTO starboard '
-                 '(guild_id, channel_id) '
-                 'VALUES (?, ?)')
-        self.conn.execute(query, (guild_id, channel_id))
-        self.conn.commit()
-        self.update()
-
-    def clear_starboard(self, guild_id):
-        query = ('DELETE FROM starboard '
-                 'WHERE guild_id = ?')
-        self.conn.execute(query, (guild_id,))
-        self.conn.commit()
-        self.update()
-
-    def add_starboard_message(self, original_msg_id, starboard_msg_id, guild_id):
-        query = ('INSERT INTO starboard_message '
-                 '(original_msg_id, starboard_msg_id, guild_id) '
-                 'VALUES (?, ?, ?)')
-        self.conn.execute(query, (original_msg_id, starboard_msg_id, guild_id))
-        self.conn.commit()
-        self.update()
-
-    def check_exists_starboard_message(self, original_msg_id):
-        query = ('SELECT 1 as Result '
-                 'FROM starboard_message '
-                 'WHERE original_msg_id = ?')
-        res = self.conn.execute(query, (original_msg_id,)).fetchone()
-        return res is not None
-
-    def remove_starboard_message(self, *, original_msg_id=None, starboard_msg_id=None):
-        assert (original_msg_id is None) ^ (starboard_msg_id is None)
-        if original_msg_id is not None:
-            query = ('DELETE FROM starboard_message '
-                     'WHERE original_msg_id = ?')
-            rc = self.conn.execute(query, (original_msg_id,)).rowcount
-        else:
-            query = ('DELETE FROM starboard_message '
-                     'WHERE starboard_msg_id = ?')
-            rc = self.conn.execute(query, (starboard_msg_id,)).rowcount
-        self.conn.commit()
-        self.update()
-        return rc
-
-    def clear_starboard_messages_for_guild(self, guild_id):
-        query = ('DELETE FROM starboard_message '
-                 'WHERE guild_id = ?')
-        rc = self.conn.execute(query, (guild_id,)).rowcount
-        self.conn.commit()
-        self.update()
-        return rc
 
     def check_duel_challenge(self, userid):
         query = f'''
@@ -924,10 +811,10 @@ class UserDbConn:
         return res
 
     def has_auto_role_update_enabled(self, guild_id):
-            query = ('SELECT 1 as Result '
-                    'FROM auto_role_update '
-                    'WHERE guild_id = ?')
-            return self.conn.execute(query, (guild_id,)).fetchone() is not None
+        query = ('SELECT 1 as Result '
+                'FROM auto_role_update '
+                'WHERE guild_id = ?')
+        return self.conn.execute(query, (guild_id,)).fetchone() is not None
 
     def update_status(self, guild_id: str, active_ids: list):
         placeholders = ', '.join(['?'] * len(active_ids))
@@ -943,139 +830,6 @@ class UserDbConn:
         self.update()
         return rc
 
-    # Rated VC stuff
-
-    def create_rated_vc(self, contest_id: int, start_time: float, finish_time: float, guild_id: str, user_ids: List[str]):
-        """ Creates a rated vc and returns its id.
-        """
-        query = ('INSERT INTO rated_vcs '
-                 '(contest_id, start_time, finish_time, status, guild_id) '
-                 'VALUES ( ?, ?, ?, ?, ?)')
-        id = None
-        with self.conn:
-            id = self.conn.execute(query, (contest_id, start_time, finish_time, RatedVC.ONGOING, guild_id)).lastrowid
-            for user_id in user_ids:
-                query = ('INSERT INTO rated_vc_users '
-                         '(vc_id, user_id) '
-                         'VALUES (? , ?)')
-                self.conn.execute(query, (id, user_id))
-        self.update()
-        return id
-
-    def get_rated_vc(self, vc_id: int):
-        query = ('SELECT * '
-                'FROM rated_vcs '
-                'WHERE id = ? ')
-        vc = self._fetchone(query, params=(vc_id,), row_factory=namedtuple_factory)
-        return vc
-
-    def get_ongoing_rated_vc_ids(self):
-        query = ('SELECT id '
-                 'FROM rated_vcs '
-                 'WHERE status = ? '
-                 )
-        vcs = self._fetchall(query, params=(RatedVC.ONGOING,), row_factory=namedtuple_factory)
-        vc_ids = [vc.id for vc in vcs]
-        return vc_ids
-
-    def get_rated_vc_user_ids(self, vc_id: int):
-        query = ('SELECT user_id '
-                 'FROM rated_vc_users '
-                 'WHERE vc_id = ? '
-                 )
-        users = self._fetchall(query, params=(vc_id,), row_factory=namedtuple_factory)
-        user_ids = [user.user_id for user in users]
-        return user_ids
-
-    def finish_rated_vc(self, vc_id: int):
-        query = ('UPDATE rated_vcs '
-                'SET status = ? '
-                'WHERE id = ? ')
-
-        with self.conn:
-            self.conn.execute(query, (RatedVC.FINISHED, vc_id))
-        self.update()
-
-    def update_vc_rating(self, vc_id: int, user_id: str, rating: int):
-        query = ('INSERT OR REPLACE INTO rated_vc_users '
-                 '(vc_id, user_id, rating) '
-                 'VALUES (?, ?, ?) ')
-
-        with self.conn:
-            self.conn.execute(query, (vc_id, user_id, rating))
-        self.update()
-
-    def get_vc_rating(self, user_id: str, default_if_not_exist: bool = True):
-        query = ('SELECT MAX(vc_id) AS latest_vc_id, rating '
-                 'FROM rated_vc_users '
-                 'WHERE user_id = ? AND rating IS NOT NULL'
-                 )
-        rating = self._fetchone(query, params=(user_id, ), row_factory=namedtuple_factory).rating
-        if rating is None:
-            if default_if_not_exist:
-                return _DEFAULT_VC_RATING
-            return None
-        return rating
-
-    def get_vc_rating_history(self, user_id: str):
-        """ Return [vc_id, rating].
-        """
-        query = ('SELECT vc_id, rating '
-                 'FROM rated_vc_users '
-                 'WHERE user_id = ? AND rating IS NOT NULL'
-                 )
-        ratings = self._fetchall(query, params=(user_id,), row_factory=namedtuple_factory)
-        return ratings
-
-    def set_rated_vc_channel(self, guild_id, channel_id):
-        query = ('INSERT OR REPLACE INTO rated_vc_settings '
-                 ' (guild_id, channel_id) VALUES (?, ?)'
-                 )
-        with self.conn:
-            self.conn.execute(query, (guild_id, channel_id))
-        self.update()
-
-    def get_rated_vc_channel(self, guild_id):
-        query = ('SELECT channel_id '
-                 'FROM rated_vc_settings '
-                 'WHERE guild_id = ?')
-        channel_id = self.conn.execute(query, (guild_id,)).fetchone()
-        return int(channel_id[0]) if channel_id else None
-
-    def remove_last_ratedvc_participation(self, user_id: str):
-        query = ('SELECT MAX(vc_id) AS vc_id '
-                 'FROM rated_vc_users '
-                 'WHERE user_id = ? '
-                 )
-        vc_id = self._fetchone(query, params=(user_id, ), row_factory=namedtuple_factory).vc_id
-        query = ('DELETE FROM rated_vc_users '
-                 'WHERE user_id = ? AND vc_id = ? ')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (user_id, vc_id)).rowcount
-        self.update()
-        return res
-
-    def create_list(self, guild_id, list_name):
-        query = ('INSERT OR REPLACE INTO lists '
-                 '(guild_id, name) '
-                 'VALUES (?, ?)')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (guild_id, list_name, )).rowcount
-        self.update()
-        return res
-
-    def get_lists(self, guild_id):
-        query1 = '''
-            SELECT name FROM lists
-            WHERE guild_id = ?
-        '''
-        res = self.conn.execute(query1, (guild_id,)).fetchall()
-        if res is None:
-            return res
-        return [names for names, in res]
-    
     def get_list_account_ids(self, list_name, resource):
         query1 = '''
             SELECT account_id FROM list_handles
@@ -1149,37 +903,6 @@ class UserDbConn:
         account_id, = res
         return account_id
     
-    def ban_user(self, user_id):
-        query = ('INSERT OR REPLACE INTO bans '
-                 '(user_id) '
-                 'VALUES (?)')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (user_id,)).rowcount
-        self.conn.commit()
-        self.update()
-        return res
-
-    def unban_user(self, user_id):
-        query = ('DELETE FROM bans '
-                 'WHERE user_id = ?')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (user_id,)).rowcount
-        self.conn.commit()
-        self.update()
-        return res
-
-    def get_banned_user(self, user_id):
-        query = '''
-            SELECT user_id FROM bans
-            WHERE user_id = ?
-        '''
-        res = self.conn.execute(query, (user_id,)).fetchone()
-        if res is None:
-            return res
-        return res
-
     def close(self):
         self.update()
         self.conn.close()

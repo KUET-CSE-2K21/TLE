@@ -6,7 +6,7 @@ import requests
 import json
 
 from tle import constants
-from discord.ext import commands
+from disnake.ext import commands
 
 from pathlib import Path
 import functools

@@ -4,7 +4,7 @@ import time
 from aiocache import cached
 
 from collections import defaultdict
-from discord.ext import commands
+from disnake.ext import commands
 
 from tle.util import codeforces_common as cf_common
 from tle.util import codeforces_api as cf
@@ -14,6 +14,10 @@ from tle.util import paginator
 from tle.util.ranklist import Ranklist
 
 logger = logging.getLogger(__name__)
+CONTEST_BLACKLIST = {1308, 1309, 1431, 1432, 1522, 1531}
+
+def _is_blacklisted(contest):
+    return contest.id in CONTEST_BLACKLIST
 
 class CacheError(commands.CommandError):
     pass
@@ -354,7 +358,7 @@ class ProblemsetCache:
 
 
 class RatingChangesCache:
-    _RATED_DELAY = 120 * 60 * 60
+    _RATED_DELAY = 36 * 60 * 60
     _RELOAD_DELAY = 10 * 60
     _CONTESTS_PER_CHUNK = 100
 
@@ -417,6 +421,7 @@ class RatingChangesCache:
             contest for contest in
             self.cache_master.contest_cache.contests_by_phase['FINISHED'] 
             if self.is_newly_finished_without_rating_changes(contest)
+            and not _is_blacklisted(contest)
             ]
                  
         cur_ids = {contest.id for contest in self.monitored_contests}
@@ -435,6 +440,7 @@ class RatingChangesCache:
         self.monitored_contests = [
             contest for contest in self.monitored_contests
             if self.is_newly_finished_without_rating_changes(contest)
+            and not _is_blacklisted(contest)
         ]
 
         if not self.monitored_contests:
@@ -536,7 +542,8 @@ class RanklistCache:
         rating_cache = self.cache_master.rating_changes_cache
         finished_contests = [
             contest for contest in contests_by_phase['FINISHED']
-            if rating_cache.is_newly_finished_without_rating_changes(contest)
+            if not _is_blacklisted(contest)
+            and rating_cache.is_newly_finished_without_rating_changes(contest)
         ]
 
         to_monitor = running_contests + finished_contests
@@ -556,7 +563,8 @@ class RanklistCache:
         cache = self.cache_master.rating_changes_cache
         self.monitored_contests = [
             contest for contest in self.monitored_contests
-            if contest.phase != 'FINISHED' or cache.is_newly_finished_without_rating_changes(contest)
+            if not _is_blacklisted(contest) and (contest.phase != 'FINISHED'
+                or cache.is_newly_finished_without_rating_changes(contest))
         ]
 
         if not self.monitored_contests:

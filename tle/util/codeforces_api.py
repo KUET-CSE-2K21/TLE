@@ -8,7 +8,7 @@ from collections import namedtuple, deque
 
 import aiohttp
 
-from discord.ext import commands
+from disnake.ext import commands
 
 API_BASE_URL = 'https://codeforces.com/api/'
 CONTEST_BASE_URL = 'https://codeforces.com/contest/'
@@ -180,13 +180,13 @@ class ClientError(CodeforcesApiError):
 
 class HandleNotFoundError(TrueApiError):
     def __init__(self, comment, handle):
-        super().__init__(comment, f'Handle `{handle}` not found on Codeforces')
+        super().__init__(comment, f'Handle `{handle}` not found on CodeForces')
         self.handle = handle
 
 
 class HandleInvalidError(TrueApiError):
     def __init__(self, comment, handle):
-        super().__init__(comment, f'`{handle}` is not a valid Codeforces handle')
+        super().__init__(comment, f'`{handle}` is not a valid CodeForces handle')
         self.handle = handle
 
 
@@ -197,7 +197,7 @@ class CallLimitExceededError(TrueApiError):
 
 class ContestNotFoundError(TrueApiError):
     def __init__(self, comment, contest_id):
-        super().__init__(comment, f'Contest with ID `{contest_id}` not found on Codeforces')
+        super().__init__(comment, f'Contest with ID `{contest_id}` not found on CodeForces')
 
 
 class RatingChangesUnavailableError(TrueApiError):
