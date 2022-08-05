@@ -5,7 +5,6 @@ import logging
 import os
 import base64
 import disnake
-import topgg
 
 from logging.handlers import TimedRotatingFileHandler
 from os import environ
@@ -34,10 +33,6 @@ from tle import constants
 from tle.util import codeforces_common as cf_common
 from tle.util import discord_common, font_downloader
 from tle.util import clist_api
-
-import discord
-from discord.ext import tasks
-from discord.ext import commands as cmds
 
 def setup():
     # Make required directories.
@@ -122,26 +117,11 @@ def main():
             return False
         return True
 
-    intents = discord.Intents.default()
-    guild_count = cmds.Bot(command_prefix=cmds.when_mentioned_or(';'), intents=intents)
-    guild_count.topggpy = topgg.DBLClient(guild_count, environ.get('TOPGG_TOKEN'))
-
-    @tasks.loop(minutes=5)
-    async def update_stats():
-        try:
-            await guild_count.topggpy.post_guild_count()
-            logging.info(f"Posted server count ({guild_count.topggpy.guild_count})")
-        except Exception as e:
-            logging.info(f"Failed to post server count\n{e.__class__.__name__}: {e}")
-
-    update_stats.start()
-    
     # Restrict bot usage to inside guild channels only.
     bot.add_app_command_check(no_dm_check, slash_commands = True)
 
     bot.add_listener(discord_common.bot_error_handler, name='on_slash_command_error')
     bot.run(token)
-    guild_count.run(token)
 
 if __name__ == '__main__':
     main()
