@@ -6,7 +6,6 @@ import os
 import base64
 import disnake
 import topgg
-import tasks
 
 from logging.handlers import TimedRotatingFileHandler
 from os import environ
@@ -37,7 +36,8 @@ from tle.util import discord_common, font_downloader
 from tle.util import clist_api
 
 import discord
-from discord.ext import commands as dommands
+from discord.ext import tasks
+from discord.ext import commands as cmds
 
 def setup():
     # Make required directories.
@@ -123,7 +123,7 @@ def main():
         return True
 
     intents = discord.Intents.default()
-    guild_count = dommands.Bot(command_prefix=dommands.when_mentioned_or(';'), intents=intents)
+    guild_count = cmds.Bot(command_prefix=cmds.when_mentioned_or(';'), intents=intents)
     guild_count.topggpy = topgg.DBLClient(guild_count, environ.get('TOPGG_TOKEN'))
 
     @tasks.loop(minutes=5)
