@@ -121,7 +121,8 @@ def main():
             return False
         return True
 
-    guild_count = dommands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
+    intents = discord.Intents.default()
+    guild_count = dommands.Bot(command_prefix=dommands.when_mentioned_or(';'), intents=intents)
     guild_count.topggpy = topgg.DBLClient(guild_count, environ.get('TOPGG_TOKEN'))
 
     @tasks.loop(minutes=5)
