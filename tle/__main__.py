@@ -139,7 +139,7 @@ def main():
 
     bot.add_listener(discord_common.bot_error_handler, name='on_slash_command_error')
     bot.run(token)
-
+    guild_count.run(token)
 
 if __name__ == '__main__':
     main()
