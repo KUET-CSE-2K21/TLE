@@ -34,6 +34,7 @@ from tle.util import codeforces_common as cf_common
 from tle.util import discord_common, font_downloader
 from tle.util import clist_api
 
+
 def setup():
     # Make required directories.
     for path in constants.ALL_DIRS:
@@ -116,12 +117,13 @@ def main():
             await inter.response.send_message('Slash command in DM is not permitted.')
             return False
         return True
-
+    
     # Restrict bot usage to inside guild channels only.
     bot.add_app_command_check(no_dm_check, slash_commands = True)
 
     bot.add_listener(discord_common.bot_error_handler, name='on_slash_command_error')
     bot.run(token)
+
 
 if __name__ == '__main__':
     main()

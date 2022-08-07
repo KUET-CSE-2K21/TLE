@@ -191,11 +191,10 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         """
         await inter.response.defer()
 
-        if rating % 100 != 0: return await inter.edit_original_message('Problem rating should be a multiple of 100.')
-
+        tags = list(tags.split())
         handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
         if rating == None: rating = round(cf_common.user_db.fetch_cf_user(handle).effective_rating, -2)
-        tags = list(tags.split())
+        if rating % 100 != 0: return await inter.edit_original_message('Problem rating should be a multiple of 100.')
 
         submissions = await cf.user.status(handle=handle)
         solved = {sub.problem.name for sub in submissions if sub.verdict == 'OK'}

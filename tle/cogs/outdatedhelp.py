@@ -10,7 +10,7 @@ class HelpCommand(commands.HelpCommand):
         description = 'This command can only be used as a Slash Command. Please use `/help` instead to execute this command. Non-slash commands will be disappearing as of **August 2022**.\n\nPlease note that **all bots** will be **required** to switch to Slash Commands by **August 2022**, so you better be getting used to them now!\n\nIf the server you are in is not showing TLE\'s slash commands you can ask an administrator of the server to invite the bot again by using [this link](https://j2c.cc/tle-bot). The bot **doesn\'t need to be kicked**, it just needs to be **invited again**!'
         avatar = "https://cdn.discordapp.com/avatars/968509913531809862/a739c2a4de74d91c17026daf7aadc7d8.png?size=1024"
         self.embed = disnake.Embed(color = color, title = title, description = description)
-        self.embed.set_image(url = "https://cdn.discordapp.com/embed/avatars/0.png")
+        self.embed.set_image(url = "https://cdn.discordapp.com/attachments/928985686638460938/1005844570631852112/unknown.png")
         self.embed.set_author(name = 'TLE Plugins Commands', icon_url = avatar)
 
     async def send_bot_help(self, mapping):
