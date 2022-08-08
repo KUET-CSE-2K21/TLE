@@ -817,6 +817,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         member = member or inter.author
         data = cf_common.user_db.get_ongoing_duels()
+
         if not data:
             return await inter.edit_original_message('There are no ongoing duels.')
 

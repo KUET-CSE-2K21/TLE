@@ -95,9 +95,8 @@ def main():
     
     intents = disnake.Intents.default()
     intents.members = True
-    intents.message_content = True
 
-    bot = commands.Bot(command_prefix=commands.when_mentioned_or(';'), intents=intents)
+    bot = commands.InteractionBot(intents = intents)
 
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
     for extension in cogs:
