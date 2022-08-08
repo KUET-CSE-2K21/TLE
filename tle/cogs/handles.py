@@ -356,10 +356,6 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
     async def on_member_remove(self, member):
         await self._remove(member)
 
-    @commands.Cog.listener()
-    async def on_guild_remove(self, guild):
-        cf_common.user_db.remove_guild(guild.id)
-
     @tasks.task_spec(name='RefreshClistUserCache',
                      waiter=tasks.Waiter.fixed_delay(_UPDATE_CLIST_CACHE_INTERVAL))
     async def _update_clist_users_cache(self, _):
@@ -630,7 +626,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await inter.edit_original_message(embed=embed)
 
     async def _remove(self, member:disnake.Member):
-        rc = cf_common.user_db.remove_handle(member.id, inter.guild.id)
+        rc = cf_common.user_db.remove_handle(member.id, member.guild.id)
         if not rc:
             raise HandleCogError(f'Handle for {member.mention} not found in database')
         try:
