@@ -53,7 +53,7 @@ def attach_image(embed, img_file):
 
 
 def set_author_footer(embed, user):
-    embed.set_footer(text=f'Requested by {user}', icon_url=user.avatar.url)
+    embed.set_footer(text=f'Requested by {user}', icon_url=user.display_avatar.url)
 
 def time_format(seconds):
     seconds = int(seconds)
