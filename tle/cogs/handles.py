@@ -36,7 +36,6 @@ from disnake.ext import commands
 
 from PIL import Image, ImageFont, ImageDraw
 
-_HANDLES_PER_PAGE = 15
 _NAME_MAX_LEN = 20
 _PAGINATE_WAIT_TIME = 5 * 60  # 5 minutes
 _PRETTY_HANDLES_PER_PAGE = 10
@@ -301,7 +300,7 @@ def _make_profile_embed(member, user, handles={}):
 
 
 def _make_pages(users, title, resource='codeforces.com'):
-    chunks = paginator.chunkify(users, _HANDLES_PER_PAGE)
+    chunks = paginator.chunkify(users, 10)
     pages = []
     done = 1
     no_rating = resource in ['codingcompetitions.withgoogle.com', 'facebook.com/hackercup']
@@ -752,21 +751,27 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         return rating_changes
 
     @handle.sub_command(description="Show all handles")
-    async def list(self, inter, resource: _CP_PLATFORMS = "codeforces.com"):
+    async def list(self, inter, resource: _CP_PLATFORMS = "codeforces.com", countries: str = ""):
         """Shows members of the server who have registered their handles and their ratings. Default platform is CodeForces.
 
         Parameters
         ----------
         resource: Competitive Programming platform (default is CodeForces)
+        countries: List handles of specified countries (separated by spaces)
         """
         await inter.response.defer()
+
+        countries = countries.split()
 
         users = None
         if resource=='codeforces.com':
             res = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
-            users = [(inter.guild.get_member(user_id), cf_user.handle, cf_user.rating) for user_id, cf_user in res]
+            users = [(inter.guild.get_member(user_id), cf_user.handle, cf_user.rating)
+                    for user_id, cf_user in res if countries == [] or cf_user.country in countries]
             users = [(member, handle, rating, 0) for member, handle, rating in users if member is not None]
         else:
+            if countries == []: return await inter.edit_original_message(
+                "Countries can currently only be specified for CodeForces users.")
             account_ids = cf_common.user_db.get_account_ids_for_resource(inter.guild.id ,resource)
             members = {}
             ids = []
@@ -791,6 +796,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
         users.sort(key=lambda x: (1 if x[2] is None else -x[2], -x[3], x[1]))  # Sorting by (-rating,-contests, handle)
         title = f'Handles of server members ({resource_name(resource)})'
+        if countries:
+            title += ' from ' + ', '.join(f'`{country}`' for country in countries)
         pages = _make_pages(users, title, resource)
         await paginator.paginate(self.bot, 'edit', inter, pages,
                            message = await inter.original_message(),
