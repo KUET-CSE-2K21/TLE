@@ -611,6 +611,9 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         challenger = inter.guild.get_member(challenger_id)
         challengee = inter.guild.get_member(challengee_id)
+        if challenger == None or challengee == None:
+            cf_common.user_db.invalidate_duel(duelid)
+            return await inter.edit_original_message(f'Your challenge has been invalidated because one of the challengers left the server.')
 
         if challenger_time and challengee_time:
             if challenger_time != challengee_time:
@@ -656,6 +659,9 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             self.draw_offers[duelid] = inter.author.id
             offeree_id = challenger_id if inter.author.id != challenger_id else challengee_id
             offeree = inter.guild.get_member(offeree_id)
+            if offeree == None:
+                cf_common.user_db.invalidate_duel(duelid)
+                return await inter.edit_original_message(f'Your challenge has been invalidated because one of the challengers left the server.')
             return await inter.edit_original_message(f'{inter.author.mention} is offering a draw to {offeree.mention}!')
 
         if self.draw_offers[duelid] == inter.author.id:
@@ -704,11 +710,11 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 finish_time - start_time, shorten=True, always_seconds=True)
             when = cf_common.days_ago(start_time)
             loser_id = challenger if member.id != challenger else challengee
-            loser = get_cf_user(loser_id, inter.guild.id)
+            loser = inter.guild.get_member(loser_id)
             problem = cf_common.cache2.problem_cache.problem_by_name[problem_name]
             if loser is None:
-                return f'**[{problem.name}]({problem.url})** [{problem.rating}] versus unknown {when} in {duel_time}'
-            return f'**[{problem.name}]({problem.url})** [{problem.rating}] versus [{loser.handle}]({loser.url}) {when} in {duel_time}'
+                return f'**[{problem.name}]({problem.url})** [{problem.rating}] versus `unknown` {when} in {duel_time}'
+            return f'**[{problem.name}]({problem.url})** [{problem.rating}] versus `{loser}` {when} in {duel_time}'
 
         if wins:
             # sort by finish_time - start_time
@@ -721,7 +727,13 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         embed.set_thumbnail(url=f'{user.titlePhoto}')
         await inter.edit_original_message(embed=embed)
 
-    def _paginate_duels(self, data, message, guild_id, show_id):
+    def _paginate_duels(self, fake_data, message, inter, show_id):
+        data = []
+        for d in fake_data:
+            duelid, start_time, finish_time, name, challenger, challengee, winner
+            if winner != None and loser != None: data.append(d)
+        if not data: return await inter.edit_original_message(f'There are no duels to show.')
+
         def make_line(entry):
             duelid, start_time, finish_time, name, challenger, challengee, winner = entry
             duel_time = cf_common.pretty_time_format(
@@ -730,35 +742,20 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             when = cf_common.days_ago(start_time)
             idstr = f'{duelid}: '
             if winner != Winner.DRAW:
-                loser = get_cf_user(challenger if winner ==
-                                    Winner.CHALLENGEE else challengee, guild_id)
-                winner = get_cf_user(challenger if winner ==
-                                     Winner.CHALLENGER else challengee, guild_id)
-                if (winner == None and loser == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by [unknown] vs [unknown] {when} in {duel_time}'
-                if (loser == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by [{winner.handle}]({winner.url}) vs [unknown] {when} in {duel_time}'
-                if (winner == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by [unknown] vs [{loser.handle}]({loser.url}) {when} in {duel_time}'
-                return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by [{winner.handle}]({winner.url}) vs [{loser.handle}]({loser.url}) {when} in {duel_time}'
+                loser = inter.guild.get_member(challenger if winner ==
+                                    Winner.CHALLENGEE else challengee)
+                winner = inter.guild.get_member(challenger if winner ==
+                                     Winner.CHALLENGER else challengee)
+                return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by `{winner}` vs `{loser}` {when} in {duel_time}'
             else:
-                challenger = get_cf_user(challenger, guild_id)
-                challengee = get_cf_user(challengee, guild_id)
-                if (challenger == None and challengee == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] drawn by [unknown] vs [unknown] {when} after {duel_time}'
-                if (challenger == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] drawn by [unknown] vs [{challengee.handle}]({challengee.url}) {when} after {duel_time}'
-                if (challengee == None):
-                    return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] drawn by [{challenger.handle}]({challenger.url}) vs [unknown] {when} after {duel_time}'
-                return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] drawn by [{challenger.handle}]({challenger.url}) and [{challengee.handle}]({challengee.url}) {when} after {duel_time}'
+                challenger = inter.guild.get_member(challenger)
+                challengee = inter.guild.get_member(challengee)
+                return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] drawn by `{challenger}` and `{challengee}` {when} after {duel_time}'
 
         def make_page(chunk):
             log_str = '\n'.join(make_line(entry) for entry in chunk)
             embed = discord_common.cf_color_embed(description=log_str)
             return message, embed
-
-        if not data:
-            raise CodeforcesCogError(f'There are no duels to show.')
 
         return [make_page(chunk) for chunk in paginator.chunkify(data, 7)]
 
@@ -774,7 +771,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         member = member or inter.author
         data = cf_common.user_db.get_duels(member.id)
         pages = self._paginate_duels(
-            data, f'dueling history of {member.display_name}', inter.guild.id, False)
+            data, f'Dueling history of {member.display_name}', inter, False)
         await paginator.paginate(self.bot, 'edit', inter, pages,
                            message=await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
@@ -785,18 +782,13 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         data = cf_common.user_db.get_recent_duels()
         pages = self._paginate_duels(
-            data, 'list of recent duels', inter.guild.id, True)
+            data, 'List of recent duels', inter, True)
         await paginator.paginate(self.bot, 'edit', inter, pages,
                            message=await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
     @duel.sub_command(description='Print list of ongoing duels')
-    async def ongoing(self, inter, member: disnake.Member = None):
-        """
-        Parameters
-        ----------
-        member: Member in an ongoing duel
-        """
+    async def ongoing(self, inter):
         await inter.response.defer()
 
         def make_line(entry):
@@ -805,18 +797,23 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             now = datetime.datetime.now().timestamp()
             when = cf_common.pretty_time_format(
                 now - start_time, shorten=True, always_seconds=True)
-            challenger = get_cf_user(challenger, inter.guild.id)
-            challengee = get_cf_user(challengee, inter.guild.id)
+            challenger = inter.guild.get_member(challenger)
+            challengee = inter.guild.get_member(challengee)
             return f'[{challenger.handle}]({challenger.url}) vs [{challengee.handle}]({challengee.url}): [{name}]({problem.url}) [{problem.rating}] {when}'
 
         def make_page(chunk):
             message = f'List of ongoing duels:'
+
             log_str = '\n'.join(make_line(entry) for entry in chunk)
             embed = discord_common.cf_color_embed(description=log_str)
             return message, embed
 
-        member = member or inter.author
-        data = cf_common.user_db.get_ongoing_duels()
+        fake_data = cf_common.user_db.get_ongoing_duels()
+        data = []
+
+        for d in fake_data:
+            start_time, name, challenger, challengee = d
+            if challenger != None and challengee != None: data.append(d)
 
         if not data:
             return await inter.edit_original_message('There are no ongoing duels.')
@@ -873,40 +870,29 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         challenger = inter.guild.get_member(challenger_id)
         challengee = inter.guild.get_member(challengee_id)
-        await inter.edit_original_message(f'Duel between {challenger.mention} and {challengee.mention} has been invalidated.')
+        if challenger == None or challengee == None:
+            await inter.edit_original_message(f'Duel challenge invalidated.')
+        else:
+            await inter.edit_original_message(f'Duel between {challenger.mention} and {challengee.mention} has been invalidated.')
 
     @duel.sub_command(description='Invalidate the duel')
-    async def invalidate(self, inter):
+    async def invalidate(self, inter, member: disnake.Member = None):
         """
         Declare your duel invalid. Use this if you've solved the problem prior to the duel.
         You can only use this functionality during the first 120 seconds of the duel.
         """
         await inter.response.defer()
 
-        active = cf_common.user_db.check_duel_complete(inter.author.id)
-        if not active: return await inter.edit_original_message(f'{inter.author.mention}, you are not in a duel.')
+        if inter.author.guild_permissions.administrator == False and member != None:
+            return await inter.edit_original_message(f'{inter.author.mention}, you can\'t invalidate other members\' duel.')
+
+        if member == None: member = inter.author
+        active = cf_common.user_db.check_duel_complete(member.id)
+        if not active: return await inter.edit_original_message(f'Member `{member}` is not in a duel.')
 
         duelid, challenger_id, challengee_id, start_time, _, _, _, _ = active
-        if datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME:
-            return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.')
-        await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
-
-    @duel.sub_command(description='Invalidate a duel')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def _invalidate(self, inter, member: disnake.Member):
-        """
-        Declare an ongoing duel invalid.
-        
-        Parameters
-        ----------
-        member: Member whose ongoing duel is going to be invalidated
-        """
-        await inter.response.defer()
-
-        active = cf_common.user_db.check_duel_complete(member.id)
-        if not active: return await inter.edit_original_message(f'{member.display_name} is not in a duel.')
-
-        duelid, challenger_id, challengee_id, _, _, _, _, _ = active
+        if datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME and inter.author.guild_permissions.administrator == False:
+            return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.\nPlease ask a moderator to invalidate your duel.')
         await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
 
     @duel.sub_command(description='Plot duel rating')

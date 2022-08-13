@@ -338,7 +338,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         role: Member role to be mentioned when a new contest release
         before: Number of minutes to remind before a contest starts
         """
-        await inter.response.defer()
+        await inter.response.defer(ephemeral = True)
 
         if not role.mentionable:
             return await inter.edit_original_message('The role for reminders must be mentionable.')
@@ -369,7 +369,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         role: Member role to be mentioned when a new contest release
         before: Number of minutes to remind before a contest starts
         """
-        await inter.response.defer()
+        await inter.response.defer(ephemeral = True)
 
         if not role.mentionable:
             return await inter.edit_original_message('The role for reminders must be mentionable')
@@ -432,7 +432,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
     @remind.sub_command(description='Configure contest reminder settings')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def config(self, inter):
-        await inter.response.defer()
+        await inter.response.defer(ephemeral = True)
 
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
         if settings is None:
