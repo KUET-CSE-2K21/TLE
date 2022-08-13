@@ -731,7 +731,9 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         data = []
         for d in fake_data:
             duelid, start_time, finish_time, name, challenger, challengee, winner = d
-            if winner != None and loser != None: data.append(d)
+            challenger = inter.guild.get_member(challenger)
+            challengee = inter.guild.get_member(challengee)
+            if challenger != None and challengee != None: data.append(d)
         if not data: return await inter.edit_original_message(f'There are no duels to show.')
 
         def make_line(entry):
