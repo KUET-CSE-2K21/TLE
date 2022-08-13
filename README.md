@@ -30,7 +30,7 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ⌛ Ultra-precise calculator (with some maths function).
 
-⌛ `;handle list` will be filtered with specified countries.
+✔️ `;handle list` will be filtered with specified countries.
 
 ✔️ Migrating the bot's features to Slash commands.
 

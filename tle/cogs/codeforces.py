@@ -730,7 +730,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
     async def _paginate_duels(self, fake_data, message, inter, show_id):
         data = []
         for d in fake_data:
-            duelid, start_time, finish_time, name, challenger, challengee, winner
+            duelid, start_time, finish_time, name, challenger, challengee, winner = d
             if winner != None and loser != None: data.append(d)
         if not data: return await inter.edit_original_message(f'There are no duels to show.')
 
