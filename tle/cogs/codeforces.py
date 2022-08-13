@@ -727,7 +727,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         embed.set_thumbnail(url=f'{user.titlePhoto}')
         await inter.edit_original_message(embed=embed)
 
-    def _paginate_duels(self, fake_data, message, inter, show_id):
+    async def _paginate_duels(self, fake_data, message, inter, show_id):
         data = []
         for d in fake_data:
             duelid, start_time, finish_time, name, challenger, challengee, winner
@@ -770,7 +770,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         member = member or inter.author
         data = cf_common.user_db.get_duels(member.id)
-        pages = self._paginate_duels(
+        pages = await self._paginate_duels(
             data, f'Dueling history of {member.display_name}', inter, False)
         await paginator.paginate(self.bot, 'edit', inter, pages,
                            message=await inter.original_message(),
@@ -781,7 +781,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         await inter.response.defer()
 
         data = cf_common.user_db.get_recent_duels()
-        pages = self._paginate_duels(
+        pages = await self._paginate_duels(
             data, 'List of recent duels', inter, True)
         await paginator.paginate(self.bot, 'edit', inter, pages,
                            message=await inter.original_message(),
