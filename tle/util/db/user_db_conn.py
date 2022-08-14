@@ -196,7 +196,7 @@ class UserDbConn:
         )
         self.conn.execute('''
             CREATE TABLE IF NOT EXISTS guildtz (
-                guild_id TEXT PRIMARY KEY
+                guild_id TEXT PRIMARY KEY,
                 timezone TEXT
             )
         ''')
