@@ -1771,7 +1771,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
         return pages
 
     @staticmethod
-    def _make_contest_embed_for_ranklist(ranklist=None, contest=None, timezone:pytz.timezone=cf_common.default_timezone, parsed_at=None):
+    def _make_contest_embed_for_ranklist(ranklist=None, contest=None, timezone:pytz.timezone, parsed_at=None):
         contest = ranklist.contest if ranklist else contest
         assert contest.phase != 'BEFORE', f'Contest {contest.id} has not started.'
         embed = discord_common.cf_color_embed(title=contest.name, url=contest.url)
@@ -1933,6 +1933,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
 
         resource = 'codeforces.com'
         timezone = cf_common.user_db.get_guildtz(inter.guild.id)
+        timezone = pytz.timezone(timezone or 'Asia/Kolkata')
         for pattern in _PATTERNS:
             if pattern in contest_id:
                 resource = _PATTERNS[pattern]

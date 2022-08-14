@@ -34,8 +34,6 @@ _initialize_done = False
 
 active_groups = defaultdict(set)
 
-default_timezone = pytz.timezone('Asia/Kolkata')
-
 
 async def initialize(nodb):
     global cache2

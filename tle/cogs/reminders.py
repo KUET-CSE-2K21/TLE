@@ -315,10 +315,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(embed=discord_common.embed_neutral(empty_msg))
 
         zone = cf_common.user_db.get_guildtz(inter.guild.id)
-        if zone == None: zone = 'Asia/Kolkata'
+        zone = pytz.timezone(zone or 'Asia/Kolkata')
 
-        pages = self._make_contest_pages(
-            contests, title, pytz.timezone(zone))
+        pages = self._make_contest_pages(contests, title, zone)
         await paginator.paginate(self.bot, 'edit', inter, pages,
             message=await inter.original_message(),
             wait_time=_CONTEST_PAGINATE_WAIT_TIME, set_pagenum_footers=True)
