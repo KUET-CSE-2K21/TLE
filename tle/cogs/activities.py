@@ -1771,7 +1771,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
         return pages
 
     @staticmethod
-    def _make_contest_embed_for_ranklist(ranklist=None, contest=None, parsed_at=None, timezone:pytz.timezone):
+    def _make_contest_embed_for_ranklist(timezone:pytz.timezone, ranklist=None, contest=None, parsed_at=None):
         contest = ranklist.contest if ranklist else contest
         assert contest.phase != 'BEFORE', f'Contest {contest.id} has not started.'
         embed = discord_common.cf_color_embed(title=contest.name, url=contest.url)
@@ -2012,7 +2012,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
                         raise ActivitiesCogError(f'Contest `{contest.id} | {contest.name}` has not started')
                     ranklist = await cf_common.cache2.ranklist_cache.generate_ranklist(contest.id,
                                                                                     fetch_changes=True)
-                await inter.edit_original_message(embed=self._make_contest_embed_for_ranklist(ranklist, timezone=timezone))
+                await inter.edit_original_message(embed=self._make_contest_embed_for_ranklist(ranklist = ranklist, timezone = timezone))
                 await self._show_ranklist(inter = inter, contest_id=contest_id, handles=handles, ranklist=ranklist)
 
     async def _show_ranklist(self, inter, contest_id: int, handles: List[str], ranklist, vc: bool = False):
