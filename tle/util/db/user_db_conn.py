@@ -536,7 +536,8 @@ class UserDbConn:
             FROM guildtz
             WHERE guild_id = ?
         '''
-        return self.conn.execute(query, (guild_id,)).fetchone()
+        res = self.conn.execute(query, (guild_id,)).fetchone()
+        return res[0] if res else None
 
     def get_reminder_settings(self, guild_id):
         query = '''
