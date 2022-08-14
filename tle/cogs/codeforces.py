@@ -802,7 +802,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 now - start_time, shorten=True, always_seconds=True)
             challenger = inter.guild.get_member(challenger)
             challengee = inter.guild.get_member(challengee)
-            return f'[{challenger.handle}]({challenger.url}) vs [{challengee.handle}]({challengee.url}): [{name}]({problem.url}) [{problem.rating}] {when}'
+            return f'`{challenger}` vs `{challengee}`: [{name}]({problem.url}) [{problem.rating}] {when}'
 
         def make_page(chunk):
             message = f'List of ongoing duels:'
