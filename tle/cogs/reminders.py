@@ -31,9 +31,6 @@ _CONTEST_PAGINATE_WAIT_TIME = 5 * 60
 _FINISHED_CONTESTS_LIMIT = 10
 _CONTEST_REFRESH_PERIOD = 10 * 60  # seconds
 
-_PYTZ_TIMEZONES_GIST_URL = ('https://gist.github.com/heyalexej/'
-                            '8bf688fd67d7199be4a1682b3eec7568')
-
 class RemindersCogError(commands.CommandError):
     pass
 
@@ -152,7 +149,7 @@ _RESOURCE_NAMES = {
 GuildSettings = recordtype(
     'GuildSettings', [
         ('channel_id', None), ('role_id', None),
-        ('before', None), ('localtimezone', pytz.timezone('Asia/Kolkata')),
+        ('before', None),
         ('website_allowed_patterns', defaultdict(list)),
         ('website_disallowed_patterns', defaultdict(list))])
 
@@ -239,8 +236,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
     def get_guild_contests(self, contests, guild_id, resources=None):
         settings = cf_common.user_db.get_reminder_settings(guild_id)
         if settings:
-            _, _, _, _, website_allowed_patterns, website_disallowed_patterns = \
-                settings
+            _, _, _, website_allowed_patterns, website_disallowed_patterns = settings
         website_allowed_patterns = json.loads(website_allowed_patterns) if settings else _WEBSITE_ALLOWED_PATTERNS
         website_disallowed_patterns = json.loads(website_disallowed_patterns) if settings else _WEBSITE_DISALLOWED_PATTERNS
         contests = [contest for contest in contests if contest.is_desired(
@@ -268,13 +264,13 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         settings = cf_common.user_db.get_reminder_settings(guild_id)
         if settings is None or any(setting is None for setting in settings):
             return
-        channel_id, role_id, before, localtimezone, \
+        channel_id, role_id, before, \
             website_allowed_patterns, website_disallowed_patterns = settings
 
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
-        localtimezone = pytz.timezone(localtimezone)
+        localtimezone = pytz.timezone(cf_common.user_db.get_guildtz(guild_id))
 
         guild = self.bot.get_guild(guild_id)
         channel, role = guild.get_channel(channel_id), guild.get_role(role_id)
@@ -312,12 +308,13 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     async def _send_contest_list(self, inter, contests, *, title, empty_msg):
         if contests is None:
-            return await inter.edit_original_message('Contest list not preseznt')
+            return await inter.edit_original_message('Contest list not present')
         if len(contests) == 0:
             return await inter.edit_original_message(embed=discord_common.embed_neutral(empty_msg))
-        settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
-        self.logger.info(settings)
-        zone = settings[3] if settings else 'Asia/Kolkata'
+
+        zone = cf_common.user_db.get_guildtz(inter.guild.id)
+        if zone == None: zone = 'Asia/Kolkata'
+
         pages = self._make_contest_pages(
             contests, title, pytz.timezone(zone))
         await paginator.paginate(self.bot, 'edit', inter, pages,
@@ -347,11 +344,11 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(f'{inter.channel.mention} is not text channel.')
         before = [before]
         before = sorted(before, reverse=True)
-        _, _, _, default_time_zone, default_allowed_patterns, default_disallowed_patterns = \
+        _, _, _, default_allowed_patterns, default_disallowed_patterns = \
             get_default_guild_settings()
         cf_common.user_db.set_reminder_settings( \
             inter.guild.id, inter.channel.id, role.id, json.dumps(before), \
-                str(default_time_zone), json.dumps(default_allowed_patterns), \
+                json.dumps(default_allowed_patterns), \
                 json.dumps(default_disallowed_patterns)
             )
         message = f'Contest reminder has been enabled in this channel {inter.channel.mention}.'
@@ -378,11 +375,11 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(f'{channel.mention} is not a text channel.')
         before = [before]
         before = sorted(before, reverse=True)
-        _, _, _, default_time_zone, default_allowed_patterns, default_disallowed_patterns = \
+        _, _, _, default_allowed_patterns, default_disallowed_patterns = \
             get_default_guild_settings()
         cf_common.user_db.set_reminder_settings( \
             inter.guild.id, channel.id, role.id, json.dumps(before), \
-                str(default_time_zone), json.dumps(default_allowed_patterns), \
+                json.dumps(default_allowed_patterns), \
                 json.dumps(default_disallowed_patterns)
             )
         message = f'Contest reminder has been enabled in channel {channel.mention}.'
@@ -397,10 +394,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             disallowed_patterns):
         # load settings
         settings = cf_common.user_db.get_reminder_settings(guild_id)
-        channel_id, role_id, before, localtimezone, \
+        channel_id, role_id, before, \
             website_allowed_patterns, website_disallowed_patterns = settings
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
-        localtimezone = pytz.timezone(localtimezone)
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
         # modify settings
@@ -417,7 +413,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         # save settings
         cf_common.user_db.set_reminder_settings( \
             guild_id, channel_id, role_id, json.dumps(before), \
-                str(localtimezone), json.dumps(website_allowed_patterns), \
+                json.dumps(website_allowed_patterns), \
                 json.dumps(website_disallowed_patterns)
             )
         return supported_websites, unsupported_websites
@@ -441,7 +437,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                 'You have to set a contest reminder in a channel in advance.'
                 'Set a contest reminder by using `/remind here` or `/remind inchannel`.'
             ))
-        channel_id, role_id, before, localtimezone, \
+        channel_id, role_id, before, \
             website_allowed_patterns, website_disallowed_patterns = settings
         channel = inter.guild.get_channel(int(channel_id))
         role = inter.guild.get_role(int(role_id))
@@ -454,7 +450,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             options = [disnake.SelectOption(
                 value = website,
                 description = website,
-                label = _RESOURCE_NAMES[website]
+                label = _RESOURCE_NAMES[website],
+                default = website_allowed_patterns[website] != None
             ) for website in _SUPPORTED_WEBSITES])
         async def select_callback(_):
             await self.unsubscribe(inter.guild.id, _SUPPORTED_WEBSITES)
@@ -486,7 +483,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
         if settings is None:
             return await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.'))
-        channel_id, role_id, before, localtimezone, \
+        channel_id, role_id, before, \
             website_allowed_patterns, website_disallowed_patterns = settings
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
@@ -530,7 +527,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if settings is None:
             await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.'))
             return
-        channel_id, role_id, before, localtimezone, \
+        channel_id, role_id, before, \
             website_allowed_patterns, website_disallowed_patterns = settings
         role = inter.guild.get_role(int(role_id))
         if role is None:
@@ -549,7 +546,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     @commands.slash_command(description='Set the server\'s timezone', usage=' <timezone>')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def settz(self, inter, timezone: str = None):
+    async def settz(self, inter, timezone: str):
         """
         Sets the server's timezone to the given timezone.
 
@@ -561,12 +558,11 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
         if not (timezone in pytz.all_timezones):
             desc = 'The given timezone is invalid\n'
-            desc += 'All valid timezones can be found [here]'
-            desc += f'({_PYTZ_TIMEZONES_GIST_URL})\n\n'
+            desc += 'All valid timezones can be found [here](pastebin.com/cydNeAyr)\n\n'
             desc += 'Examples of valid timezones:\n'
             desc += '\n'.join(random.sample(pytz.all_timezones, 5))
-            return await inter.edit_original_message(discord_common.embed_alert(desc))
-        cf_common.user_db.set_time_zone(inter.guild.id, str(pytz.timezone(timezone)))
+            return await inter.edit_original_message(embed=discord_common.embed_alert(desc))
+        cf_common.user_db.set_guildtz(inter.guild.id, str(pytz.timezone(timezone)))
         await inter.edit_original_message(embed=discord_common.embed_success(
             f'Succesfully set the server timezone to {timezone}'))
 

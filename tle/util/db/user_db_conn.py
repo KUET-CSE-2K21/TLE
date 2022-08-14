@@ -179,7 +179,6 @@ class UserDbConn:
                 channel_id TEXT,
                 role_id TEXT,
                 before TEXT,
-                timezone TEXT,
                 website_allowed_patterns TEXT,
                 website_disallowed_patterns TEXT
             )
@@ -195,6 +194,12 @@ class UserDbConn:
             'guild_id     TEXT PRIMARY KEY'
             ')'
         )
+        self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS guildtz (
+                guild_id TEXT PRIMARY KEY
+                timezone TEXT
+            )
+        ''')
 
     # Helper functions.
 
@@ -516,28 +521,37 @@ class UserDbConn:
         res = self.conn.execute(query, (guild_id,)).fetchall()
         return [(int(t[0]), cf.User._make(t[1:])) for t in res]
 
+    def set_guildtz(self, guild_id, timezone):
+        query = '''
+            INSERT OR REPLACE INTO guildtz (guild_id, timezone)
+            VALUES (?, ?)
+        '''
+        self.conn.execute(query, (guild_id, timezone))
+        self.conn.commit()
+        self.update()
+
+    def get_guildtz(self, guild_id):
+        query = '''
+            SELECT timezone
+            FROM guildtz
+            WHERE guild_id = ?
+        '''
+        return self.conn.execute(query, (guild_id,)).fetchone()
+
     def get_reminder_settings(self, guild_id):
         query = '''
-            SELECT channel_id, role_id, before, timezone, website_allowed_patterns, website_disallowed_patterns
+            SELECT channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns
             FROM reminder
             WHERE guild_id = ?
         '''
         return self.conn.execute(query, (guild_id,)).fetchone()
 
-    def set_reminder_settings(self, guild_id, channel_id, role_id, before, timezone, website_allowed_patterns, website_disallowed_patterns):
+    def set_reminder_settings(self, guild_id, channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns):
         query = '''
-            INSERT OR REPLACE INTO reminder (guild_id, channel_id, role_id, before, timezone, website_allowed_patterns, website_disallowed_patterns)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO reminder (guild_id, channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns)
+            VALUES (?, ?, ?, ?, ?, ?)
         '''
-        self.conn.execute(query, (guild_id, channel_id, role_id, before, timezone, website_allowed_patterns, website_disallowed_patterns))
-        self.conn.commit()
-        self.update()
-
-    def set_time_zone(self, guild_id, timezone):
-        query = '''
-            UPDATE reminder SET timezone = ? WHERE guild_id = ?
-        '''
-        self.conn.execute(query, (timezone, guild_id))
+        self.conn.execute(query, (guild_id, channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns))
         self.conn.commit()
         self.update()
 

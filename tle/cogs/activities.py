@@ -1932,7 +1932,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
         handles = tuple(handles.split())
 
         resource = 'codeforces.com'
-        timezone = cf_common.get_guild_timezone(inter.guild.id)
+        timezone = cf_common.user_db.get_guildtz(inter.guild.id)
         for pattern in _PATTERNS:
             if pattern in contest_id:
                 resource = _PATTERNS[pattern]
