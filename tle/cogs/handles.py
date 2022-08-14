@@ -1084,14 +1084,16 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         ----------
         choice: "here" to enable auto publish rank update in this channel, or "off" to turn it off
         """
+        await inter.response.defer(ephemeral = True)
+
         if choice == 'here':
             if inter.channel.type != disnake.ChannelType.text:
-                raise HandleCogError(f'This current channel is not a text channel.')
+                return await inter.edit_original_message(f'This current channel is not a text channel.')
             cf_common.user_db.set_rankup_channel(inter.guild.id, inter.channel.id)
             await inter.send(embed=discord_common.embed_success(f'Auto rank update publishing enabled in this channel {inter.channel.mention}.'))
         else:
             rc = cf_common.user_db.clear_rankup_channel(inter.guild.id)
-            if not rc: raise HandleCogError('Auto rank update publishing is already disabled.')
+            if not rc: return await inter.edit_original_message('Auto rank update publishing is already disabled.')
             await inter.send(embed=discord_common.embed_success('Auto rank update publishing disabled.'))
 
     @publish.sub_command(description='Publish a rank update for the given contest')
