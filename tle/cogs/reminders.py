@@ -558,9 +558,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
         if not (timezone in pytz.all_timezones):
             desc = 'The given timezone is invalid\n'
-            desc += 'All valid timezones can be found [here](pastebin.com/cydNeAyr)\n\n'
+            desc += 'All valid timezones can be found [here](https://pastebin.com/cydNeAyr)\n\n'
             desc += 'Examples of valid timezones:\n'
-            desc += '\n'.join(random.sample(pytz.all_timezones, 5))
+            desc += '```' + '\n'.join(random.sample(pytz.all_timezones, 5)) + '```'
             return await inter.edit_original_message(embed=discord_common.embed_alert(desc))
         cf_common.user_db.set_guildtz(inter.guild.id, str(pytz.timezone(timezone)))
         await inter.edit_original_message(embed=discord_common.embed_success(
