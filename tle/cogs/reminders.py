@@ -41,8 +41,8 @@ class RemindersCogError(commands.CommandError):
 def _contest_start_time_format(contest, tz):
     start = contest.start_time.replace(tzinfo=dt.timezone.utc).astimezone(tz)
     tz = str(tz)
-    if tz=='Asia/Kolkata':
-        tz = 'IST'
+    if tz == 'Asia/Kolkata': tz = 'IST'
+    if tz == 'Asia/Ho_Chi_Minh': tz = 'ICT'
     return f'{start.strftime("%d %b %y, %H:%M")} {tz}'
 
 
@@ -316,6 +316,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if len(contests) == 0:
             return await inter.edit_original_message(embed=discord_common.embed_neutral(empty_msg))
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
+        self.logger.info(settings)
         zone = settings[3] if settings else 'Asia/Kolkata'
         pages = self._make_contest_pages(
             contests, title, pytz.timezone(zone))
@@ -559,12 +560,12 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         await inter.response.defer()
 
         if not (timezone in pytz.all_timezones):
-            desc = ('The given timezone is invalid\n\n'
-                    'Examples of valid timezones:\n\n')
+            desc = 'The given timezone is invalid\n'
+            desc += 'All valid timezones can be found [here]'
+            desc += f'({_PYTZ_TIMEZONES_GIST_URL})\n\n'
+            desc += 'Examples of valid timezones:\n'
             desc += '\n'.join(random.sample(pytz.all_timezones, 5))
-            desc += '\n\nAll valid timezones can be found [here]'
-            desc += f'({_PYTZ_TIMEZONES_GIST_URL})'
-            return await inter.edit_original_message(desc)
+            return await inter.edit_original_message(discord_common.embed_alert(desc))
         cf_common.user_db.set_time_zone(inter.guild.id, str(pytz.timezone(timezone)))
         await inter.edit_original_message(embed=discord_common.embed_success(
             f'Succesfully set the server timezone to {timezone}'))
