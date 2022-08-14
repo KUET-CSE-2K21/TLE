@@ -270,7 +270,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
-        localtimezone = pytz.timezone(cf_common.user_db.get_guildtz(guild_id))
+
+        localtimezone = cf_common.user_db.get_guildtz(guild_id)
+        localtimezone = pytz.timezone(localtimezone or 'Asia/Kolkata')
 
         guild = self.bot.get_guild(guild_id)
         channel, role = guild.get_channel(channel_id), guild.get_role(role_id)

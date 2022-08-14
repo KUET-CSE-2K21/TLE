@@ -353,7 +353,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
     @commands.Cog.listener()
     async def on_member_remove(self, member):
-        await self._remove(member)
+        try:
+            await self._remove(member)
+        except:
+            pass
 
     @tasks.task_spec(name='RefreshClistUserCache',
                      waiter=tasks.Waiter.fixed_delay(_UPDATE_CLIST_CACHE_INTERVAL))

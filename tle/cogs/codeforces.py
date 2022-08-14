@@ -97,6 +97,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
     def __init__(self, bot):
         self.bot = bot
         self.converter = commands.MemberConverter()
+        self.draw_offers = {}
 
     async def _validate_gitgud_status(self, inter, delta):
         if delta is not None and delta % 100 != 0:
