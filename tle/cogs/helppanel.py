@@ -25,6 +25,7 @@ class Help(commands.Cog):
         ----------
         plugin: Name of the plugin to get commands for
         """
+        await inter.response.defer()
 
         if plugin == None:
             cogs = []
@@ -55,9 +56,8 @@ class Help(commands.Cog):
 
             view = disnake.ui.View()
             view.add_item(select)
-            await inter.send(embed = embed, view = view)
+            await inter.edit_original_message(embed = embed, view = view)
         else:
-            await inter.response.defer()
             for cog in self.bot.cogs.values():
                 if cog.qualified_name == plugin:
                     await self._send_cog_help(inter, cog)
