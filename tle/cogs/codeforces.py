@@ -343,14 +343,14 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             return line
 
         def make_page(chunk,score):
-            message = f'Gitgud log for {member.display_name} (total score: {score})'
+            message = f'Gitgud log for `{member}` (total score: {score})'
             log_str = '\n'.join(make_line(entry) for entry in chunk)
             embed = discord_common.cf_color_embed(description=log_str)
             return message, embed
 
         member = member or inter.author
         data = cf_common.user_db.gitlog(member.id)
-        if not data: return await inter.edit_original_message(f'{member.mention} has no gitgud history.')
+        if not data: return await inter.edit_original_message(f'`{member}` has no gitgud history.')
 
         score = 0
         for entry in data:
@@ -526,7 +526,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 f'{inter.author.mention}, you are currently in a duel!')
         if cf_common.user_db.check_duel_challenge(challengee_id):
             return await inter.edit_original_message(
-                f'{opponent.display_name} is currently in a duel!')
+                f'`{opponent}` is currently in a duel!')
 
         users = [cf_common.user_db.fetch_cf_user(handle) for handle in handles]
         lowest_rating = min(user.rating or 0 for user in users)
@@ -550,7 +550,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         if not problems:
             return await inter.edit_original_message(
-                f'No unsolved {rating} rated problems left for {inter.author.mention} vs {opponent.mention}.')
+                f'No unsolved {rating} rated problems left for `{handles[0]}` vs `{handles[1]}`.')
 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds)
@@ -565,7 +565,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         await inter.edit_original_message(f'{inter.author.mention} is challenging {opponent.mention} to a {rating} rated duel!\nType `/duel accept` to accept or `/duel decline` to decline the challenge.')
         await asyncio.sleep(_DUEL_EXPIRY_TIME)
         if cf_common.user_db.cancel_duel(duelid, Duel.EXPIRED):
-            await inter.channel.send(f'{inter.author.mention}, your request to duel {opponent.display_name} has expired!')
+            await inter.channel.send(f'{inter.author.mention}, your request to duel `{opponent}` has expired!')
 
     @duel.sub_command(description='Decline a duel')
     async def decline(self, inter):
@@ -593,7 +593,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         duelid, challengee = active
         challengee = inter.guild.get_member(challengee)
         cf_common.user_db.cancel_duel(duelid, Duel.WITHDRAWN)
-        await inter.edit_original_message(f'{inter.author.mention} withdrew a challenge to {challengee.display_name}.')
+        await inter.edit_original_message(f'{inter.author.mention} withdrew a challenge to `{challengee}`.')
 
     @duel.sub_command(description='Accept a duel')
     async def accept(self, inter):
@@ -610,9 +610,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         start_time = datetime.datetime.now().timestamp()
         rc = cf_common.user_db.start_duel(duelid, start_time)
-        if rc != 1:
-            raise CodeforcesCogError(
-                f'Unable to start the duel between {challenger.mention} and {inter.author.mention}.')
+        if rc != 1: return await inter.channel.send(discord_common.embed_alert(f'Unable to start the duel between {challenger.mention} and {inter.author.mention}.'))
 
         problem = cf_common.cache2.problem_cache.problem_by_name[name]
         title = f'{problem.index}. {problem.name}'
@@ -938,7 +936,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         duelid, challenger_id, challengee_id, start_time, _, _, _, _ = active
         if datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME and inter.author.guild_permissions.administrator == False:
-            return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.\nPlease ask a moderator to invalidate your duel.')
+            return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.\nPlease offer a draw or ask a moderator to invalidate your duel.')
         await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
 
     @duel.sub_command(description='Plot duel rating')

@@ -478,7 +478,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                     try:
                         await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
                     except disnake.Forbidden:
-                        message = f'Cannot auto update role for {member.mention}: Missing permission.\nMake sure TLE has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.'
+                        message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.'
                         embed = discord_common.embed_neutral(message)
                         if old_message == None:
                             await inter.send(embed = embed)
@@ -513,7 +513,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             await self.update_member_rank_role(member, roles[0], reason='New handle set for user')
         except disnake.Forbidden:
             if not nolog:
-                message = f'Cannot auto update role for {member.mention}: Missing permission.\nMake sure TLE has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.'
+                message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.'
                 embed = discord_common.embed_neutral(message)
                 if old_message == None:
                     await inter.send(embed = embed)
@@ -575,9 +575,9 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             subs = await cf.user.status(handle=handle, count=5)
             if any(sub.problem.name == problem.name and sub.verdict == 'COMPILATION_ERROR' for sub in subs):
                 user, = await cf.user.info(handles=[handle])
-                ok = await self._set(inter, inter.author, user)
-                embed = _make_profile_embed(inter.author, user)
-                await inter.channel.send(embed=embed)
+                member = inter.author
+                await self._set(inter, member, user)
+                await self._get(inter, member, 'text')
             else:
                 await inter.send(f'Sorry {invoker}, can you try again?')
 
@@ -585,7 +585,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         handle = cf_common.user_db.get_handle(member.id, inter.guild.id)
         handles = cf_common.user_db.get_account_id_by_user(member.id, inter.guild.id)
         if not handle and handles is None:
-            raise HandleCogError(f'Handle for {member.mention} not found in database')
+            embed = discord_common.embed_neutral(f'Handle for `{member}` not found in database')
+            if mode == 'text': return await inter.channel.send(embed=embed)
+            if mode == 'response': return await inter.send(embed=embed)
+            if mode == 'edit': return await message.edit(content = '', embed=embed, view = None)
         user = cf_common.user_db.fetch_cf_user(handle) if handle else None
         handles = cf_common.user_db.get_account_id_by_user(member.id, inter.guild.id)
         embed = _make_profile_embed(member, user,handles=handles)
@@ -627,12 +630,12 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
     async def _remove(self, member:disnake.Member):
         rc = cf_common.user_db.remove_handle(member.id, member.guild.id)
         if not rc:
-            raise HandleCogError(f'Handle for {member.mention} not found in database')
+            raise HandleCogError(f'Handle for `{member}` not found in database')
         try:
             await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
             await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
         except disnake.Forbidden:
-            raise HandleCogError(f'Cannot auto update role for {member.mention}: Missing permission.\nMake sure TLE has a higher role than other Codeforces or Codechef roles, then type `/roleupdate codechef` to try updating roles again.')
+            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other Codeforces or Codechef roles, then type `/roleupdate codechef` to try updating roles again.')
 
     @handle.sub_command(description='Remove handle for a user')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
@@ -645,7 +648,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         member: Member to remove handles
         """
         await self._remove(member)
-        embed = discord_common.embed_success(f'Handle for {member.mention} has been removed.')
+        embed = discord_common.embed_success(f'Handle for `{member}` has been removed.')
         await inter.response.send_message(embed=embed)
 
     @handle.sub_command(description='Resolve redirect of your handle')
@@ -979,7 +982,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 old_role = rating_to_displayable_rank(change.oldRating)
             new_role = rating_to_displayable_rank(change.newRating)
             if new_role != old_role:
-                rank_change_str = (f'{member.mention} [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {old_role} '
+                rank_change_str = (f'`{member}` [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {old_role} '
                                    f'\N{LONG RIGHTWARDS ARROW} {new_role}')
                 rank_changes_str.append(rank_change_str)
 
@@ -990,7 +993,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             delta = change.newRating - change.oldRating
             if delta <= 0:
                 break
-            increase_str = (f'{member.mention} [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {change.oldRating} '
+            increase_str = (f'`{member}` [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {change.oldRating} '
                             f'\N{HORIZONTAL BAR} **{delta:+}** \N{LONG RIGHTWARDS ARROW} '
                             f'{change.newRating}')
             top_increases_str.append(increase_str)

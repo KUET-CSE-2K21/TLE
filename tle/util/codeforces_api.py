@@ -226,8 +226,8 @@ def cf_ratelimit(f):
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
-            delay = 300
-            await asyncio.sleep(delay*(i+1))
+            delay = 50
+            await asyncio.sleep(delay*i)
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:
@@ -270,8 +270,8 @@ def proxy_ratelimit(f):
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
-            delay = 300
-            await asyncio.sleep(delay*(i+1))
+            delay = 50
+            await asyncio.sleep(delay*i)
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:

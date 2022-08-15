@@ -69,7 +69,7 @@ class CacheControl(commands.Cog):
             try:
                 contest_id = int(contest_id)
             except ValueError:
-                return inter.send('Invalid contest ID')
+                return await inter.send('Invalid contest ID')
             count = await cf_common.cache2.problemset_cache.update_for_contest(contest_id)
         await inter.send(f'Done, fetched {count} problems')
 
