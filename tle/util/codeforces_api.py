@@ -222,25 +222,12 @@ def _bool_to_str(value):
 
 
 def cf_ratelimit(f):
-    tries = 3
-    per_second = 3
-    last = deque([0]*per_second)
-
+    tries = 5
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
-            now = time.time()
-
-            # Next valid slot is 1s after the `per_second`th last request
-            next_valid = max(now, 1 + last[0])
-            last.append(next_valid)
-            last.popleft()
-
-            # Delay as needed
-            delay = next_valid - now
-            if delay > 0:
-                await asyncio.sleep(delay)
-
+            delay = 300
+            await asyncio.sleep(delay*(i+1))
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:
@@ -279,11 +266,12 @@ async def _query_api(path, data=None):
     raise TrueApiError(comment)
 
 def proxy_ratelimit(f):
-    tries = 3
+    tries = 5
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
-            await asyncio.sleep(3*i)
+            delay = 300
+            await asyncio.sleep(delay*(i+1))
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:

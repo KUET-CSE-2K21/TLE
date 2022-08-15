@@ -50,22 +50,15 @@ class CallLimitExceededError(TrueApiError):
         self.comment = comment
 
 def ratelimit(f):
-    tries = 3
+    tries = 5
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
+            delay = 300
+            await asyncio.sleep(delay*(i+1))
             try:
                 return await f(*args, **kwargs)
-            except (CallLimitExceededError) as e:
-                delay = 20
-                await asyncio.sleep(delay*(i+1))
-                logger.info(f'Try {i+1}/{tries} at query failed.')
-                if i < tries - 1:
-                    logger.info(f'Retrying...')
-                else:
-                    logger.info(f'Aborting.')
-                    raise e
-            except (ClientError, ClistApiError) as e:
+            except (CallLimitExceededError, ClientError, ClistApiError) as e:
                 logger.info(f'Try {i+1}/{tries} at query failed.')
                 if i < tries - 1:
                     logger.info(f'Retrying...')
