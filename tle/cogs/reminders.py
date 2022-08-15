@@ -450,7 +450,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
         cf_common.user_db.set_reminder_settings(
             inter.guild.id, channel, role, json.dumps(before),
-            default_allowed_patterns, default_disallowed_patterns
+            website_allowed_patterns, website_disallowed_patterns
         )
         message = f'Contest reminder has been updated!\nType `/remind settings` to show new settings.'
         await inter.edit_original_message(embed = discord_common.embed_success(message))
@@ -477,6 +477,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please set another contest reminder.'))
         if role is None:  
             return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please set another contest reminder.'))
+
+        self.logger.info(website_allowed_patterns)
 
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
