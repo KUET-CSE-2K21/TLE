@@ -286,7 +286,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         points |   2  |   3  |   5  |  8  |  12  |  17  |  23  |
         
         Parameters
-        ---------
+        ----------
         delta: Rating difference to average rating.
         """
         await inter.response.defer()
