@@ -341,7 +341,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
         if not role.mentionable:
             return await inter.edit_original_message('The role for reminders must be mentionable.')
-        if inter.channel.type != disnake.ChannelType.text:
+        if inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
             return await inter.edit_original_message(f'{inter.channel.mention} is not text channel.')
         before = [before]
         before = sorted(before, reverse=True)
