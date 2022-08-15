@@ -320,7 +320,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         choice = max(random.randrange(len(problems)) for _ in range(2))
         await self._gitgud(inter, handle, problems[choice], delta)
 
-    @commands.command(brief='Print user gitgud history')
+    @commands.slash_command(description = 'Print user gitgud history')
     async def gitlog(self, inter, member: disnake.Member = None):
         """
         Displays the list of gitgud problems issued to the specified member, excluding those noguded by admins.
