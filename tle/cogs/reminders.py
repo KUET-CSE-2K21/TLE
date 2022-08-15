@@ -442,12 +442,12 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             website_allowed_patterns, website_disallowed_patterns = settings
         channel = inter.guild.get_channel(int(channel_id))
         role = inter.guild.get_role(int(role_id))
+        website_allowed_patterns = json.loads(website_allowed_patterns)
+        website_disallowed_patterns = json.loads(website_disallowed_patterns)
         if channel is None:
             return await inter.edit_original_message('Reminder channel missing. Please set another contest reminder.')
         if role is None:  
             return await inter.edit_original_message('Reminder role missing. Please set another contest reminder.')
-
-        self.logger.info(website_allowed_patterns)
 
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
