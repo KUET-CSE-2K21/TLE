@@ -35,7 +35,7 @@ RATED_RANKS = (
     Rank(2600, 3000, 'International Grandmaster', 'IGM', '#FF3333', 0xff0000),
     Rank(3000, 10 ** 9, 'Legendary Grandmaster', 'LGM', '#AA0000', 0xcc0000)
 )
-UNRATED_RANK = Rank(None, None, 'Unrated', None, None, None)
+UNRATED_RANK = Rank(None, None, 'Unrated', None, '#101010', 0x101010)
 
 
 def rating2rank(rating):

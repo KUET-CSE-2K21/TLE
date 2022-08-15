@@ -29,7 +29,6 @@ from tle.util import table
 from tle.util import tasks
 from tle.util import db
 from tle.util import scaper
-from tle.util.codeforces_api import Rank, rating2rank
 from tle import constants
 
 from disnake.ext import commands
@@ -74,24 +73,24 @@ _RESOURCE_NAMES = {
 }
 
 CODECHEF_RATED_RANKS = (
-    Rank(-10 ** 9, 1400, '1 Star', '1★', '#DADADA', 0x666666),
-    Rank(1400, 1600, '2 Star', '2★', '#C9E0CA', 0x1e7d22),
-    Rank(1600, 1800, '3 Star', '3★', '#CEDAF3', 0x3366cc),
-    Rank(1800, 2000, '4 Star', '4★', '#DBD2DE', 0x684273),
-    Rank(2000, 2200, '5 Star', '5★', '#FFF0C2', 0xffbf00),
-    Rank(2200, 2500, '6 Star', '6★', '#FFE3C8', 0xff7f00),
-    Rank(2500, 10**9, '7 Star', '7★', '#F1C1C8', 0xd0011b)
+    cf.Rank(-10 ** 9, 1400, '1 Star', '1★', '#DADADA', 0x666666),
+    cf.Rank(1400, 1600, '2 Star', '2★', '#C9E0CA', 0x1e7d22),
+    cf.Rank(1600, 1800, '3 Star', '3★', '#CEDAF3', 0x3366cc),
+    cf.Rank(1800, 2000, '4 Star', '4★', '#DBD2DE', 0x684273),
+    cf.Rank(2000, 2200, '5 Star', '5★', '#FFF0C2', 0xffbf00),
+    cf.Rank(2200, 2500, '6 Star', '6★', '#FFE3C8', 0xff7f00),
+    cf.Rank(2500, 10**9, '7 Star', '7★', '#F1C1C8', 0xd0011b)
 )
 
 ATCODER_RATED_RANKS = (
-    Rank(-10 ** 9, 400, 'Gray', 'Gray', '#DADADA', 0x808080),
-    Rank(400, 800, 'Brown', 'Brown', '#D9C5B2', 0x7F3F00),
-    Rank(800, 1200, 'Green', 'Green', '#B2D9B2', 0x007F00),
-    Rank(1200, 1600, 'Cyan', 'Cyan', '#B2ECEC', 0x00C0C0),
-    Rank(1600, 2000, 'Blue', 'Blue', '#B2B2FF', 0x0000FF),
-    Rank(2000, 2400, 'Yellow', 'Yellow', '#ECECB2', 0xBFBF00),
-    Rank(2400, 2800, 'Orange', 'Orange', '#FFD9B2', 0xF67B00),
-    Rank(2800, 10**9, 'Red', 'Red', '#FFB2B2', 0xF70000)
+    cf.Rank(-10 ** 9, 400, 'Gray', 'Gray', '#DADADA', 0x808080),
+    cf.Rank(400, 800, 'Brown', 'Brown', '#D9C5B2', 0x7F3F00),
+    cf.Rank(800, 1200, 'Green', 'Green', '#B2D9B2', 0x007F00),
+    cf.Rank(1200, 1600, 'Cyan', 'Cyan', '#B2ECEC', 0x00C0C0),
+    cf.Rank(1600, 2000, 'Blue', 'Blue', '#B2B2FF', 0x0000FF),
+    cf.Rank(2000, 2400, 'Yellow', 'Yellow', '#ECECB2', 0xBFBF00),
+    cf.Rank(2400, 2800, 'Orange', 'Orange', '#FFD9B2', 0xF67B00),
+    cf.Rank(2800, 10**9, 'Red', 'Red', '#FFB2B2', 0xF70000)
 )
 
 class HandleCogError(commands.CommandError):
@@ -112,9 +111,7 @@ def discord_color_to_hex(color):
 
 def rating_to_color(rating):
     """returns (r, g, b) pixels values corresponding to rating"""
-    rank = rating2rank(rating)
-    if rank is None or rank.color_embed is None:
-        return None
+    rank = cf.rating2rank(rating)
     h = discord_color_to_hex(rank.color_embed)
     return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 

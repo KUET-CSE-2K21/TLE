@@ -322,32 +322,16 @@ def _get_ongoing_vc_participants():
         ongoing_vc_participants |= vc_participants
     return ongoing_vc_participants
 
+def discord_color_to_hex(color):
+    h = str(hex(color))
+    h = h[2:]
+    return ('0'*(6-len(h)))+h
+
 def rating_to_color(rating):
     """returns (r, g, b) pixels values corresponding to rating"""
-    # TODO: Integrate these colors with the ranks in codeforces_api.py
-    BLACK = (10, 10, 10)
-    RED = (255, 20, 20)
-    BLUE = (0, 0, 200)
-    GREEN = (0, 140, 0)
-    ORANGE = (250, 140, 30)
-    PURPLE = (160, 0, 120)
-    CYAN = (0, 165, 170)
-    GREY = (70, 70, 70)
-    if rating is None or rating=='N/A':
-        return BLACK
-    if rating < 1200:
-        return GREY
-    if rating < 1400:
-        return GREEN
-    if rating < 1600:
-        return CYAN
-    if rating < 1900:
-        return BLUE
-    if rating < 2100:
-        return PURPLE
-    if rating < 2400:
-        return ORANGE
-    return RED
+    rank = cf.rating2rank(rating)
+    h = discord_color_to_hex(rank.color_embed)
+    return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
 
 def get_leaderboard_image(rows, font):
     """return PIL image for rankings"""
