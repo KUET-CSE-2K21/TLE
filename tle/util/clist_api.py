@@ -54,8 +54,7 @@ def ratelimit(f):
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
-            delay = 50
-            await asyncio.sleep(delay*i)
+            await asyncio.sleep(i)
             try:
                 return await f(*args, **kwargs)
             except (CallLimitExceededError, ClientError, ClistApiError) as e:
