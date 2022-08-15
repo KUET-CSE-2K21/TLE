@@ -351,7 +351,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                 json.dumps(default_allowed_patterns), \
                 json.dumps(default_disallowed_patterns)
             )
-        message = f'Contest reminder has been enabled in this channel {inter.channel.mention}.'
+        message = f'Contest reminder has successfully been enabled in this channel {inter.channel.mention}.\nType `/remind settings` to show current settings.'
         await inter.edit_original_message(embed=discord_common.embed_success(message))
         self._reschedule_tasks(inter.guild.id)
 
@@ -381,7 +381,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                 json.dumps(default_allowed_patterns), \
                 json.dumps(default_disallowed_patterns)
             )
-        message = f'Contest reminder has been enabled in channel {channel.mention}.'
+        message = f'Contest reminder has successfully been enabled in channel {channel.mention}.\nType `/remind settings` to show current settings.'
         await inter.edit_original_message(embed=discord_common.embed_success(message))
         self._reschedule_tasks(inter.guild.id)
 
@@ -449,7 +449,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         before = [before or old_before]
 
         cf_common.user_db.set_reminder_settings(
-            inter.guild.id, channel, role, json.dumps(before),
+            inter.guild.id, channel.id, role.id, json.dumps(before),
             website_allowed_patterns, website_disallowed_patterns
         )
         message = f'Contest reminder has been updated!\nType `/remind settings` to show new settings.'
@@ -538,7 +538,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             subscribed_websites_str = 'No website is subscribed'
 
         before_str = ', '.join(str(before_mins) for before_mins in before)
-        embed = discord_common.embed_success('Current reminder settings')
+        embed = discord_common.embed_success('Type `/remind config [settings/website]` configure these settings.')
+        embed.title = 'Current reminder settings'
         embed.add_field(name='Channel', value=channel.mention)
         embed.add_field(name='Role', value=role.mention)
         embed.add_field(name='Before',
