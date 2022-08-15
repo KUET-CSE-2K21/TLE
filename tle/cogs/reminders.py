@@ -478,14 +478,12 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if role is None:  
             return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please set another contest reminder.'))
 
-        self.logger.info(website_allowed_patterns)
-
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
                 value = website,
                 description = website,
                 label = _RESOURCE_NAMES[website],
-                default = website_allowed_patterns[website] != None
+                default = website_allowed_patterns[website] == []
             ) for website in _SUPPORTED_WEBSITES])
         async def select_callback(_):
             await self.unsubscribe(inter.guild.id, _SUPPORTED_WEBSITES)
