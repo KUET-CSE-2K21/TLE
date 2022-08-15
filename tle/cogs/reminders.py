@@ -447,6 +447,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if role is None:  
             return await inter.edit_original_message('Reminder role missing. Please set another contest reminder.')
 
+        self.logger.info(website_allowed_patterns)
+
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
                 value = website,
