@@ -725,7 +725,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         member = member or inter.author
         if not cf_common.user_db.is_duelist(member.id):
-            self.register(member)
+            await self.register(member)
 
         user = get_cf_user(member.id, inter.guild.id)
         rating = cf_common.user_db.get_duel_rating(member.id)
