@@ -728,6 +728,10 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             await self.register(member)
 
         user = get_cf_user(member.id, inter.guild.id)
+        if not user:
+            embed = discord_common.embed_neutral(f'Handle for `{member}` not found in database')
+            return await inter.edit_original_message(embed = embed)
+
         rating = cf_common.user_db.get_duel_rating(member.id)
         desc = f'Duelist profile of {rating2rank(rating).title} {member.mention} aka **[{user.handle}]({user.url})**'
         embed = disnake.Embed(

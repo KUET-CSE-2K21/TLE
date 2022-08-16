@@ -3,12 +3,14 @@ import disnake
 from disnake.ext import commands
 from tle.util import discord_common
 from tle.util import paginator
+from tle.cogs.donate import donate_embed
 
-_COGS_NAMES = ["Handles", "Codeforces", "Activities", "Reminders", "Moderator"]
+_COGS_NAMES = ["Handles", "Codeforces", "Activities", "Reminders", "Moderator", "Donate"]
 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.embed = donate_embed(bot)
         self.color = 0xff8c00 # Cheese's color XD
 
     @commands.Cog.listener()
@@ -36,6 +38,8 @@ class Help(commands.Cog):
             embed = disnake.Embed(color = self.color)
             avatar = self.bot.user.display_avatar.url
 
+            embed.description = 'Tip: an Community Server for TLE has been opened [here](https://discord.gg/eYNJsDhwdN). Come and say hi!'
+
             embed.set_author(name = 'TLE Plugins Commands', icon_url = avatar)
             embed.set_thumbnail(url = avatar)
             for name in _COGS_NAMES:
@@ -49,6 +53,9 @@ class Help(commands.Cog):
                 )
 
             async def select_callback(_):
+                if select.values[0] == "Donate":
+                    return await inter.edit_original_message(
+                        embed = self.embed, view = None)
                 for cog in cogs:
                     if cog.qualified_name == select.values[0]:
                         await self._send_cog_help(inter, cog)
@@ -58,6 +65,8 @@ class Help(commands.Cog):
             view.add_item(select)
             await inter.edit_original_message(embed = embed, view = view)
         else:
+            if plugin == "Donate":
+                return await inter.edit_original_message(embed = self.embed)
             for cog in self.bot.cogs.values():
                 if cog.qualified_name == plugin:
                     await self._send_cog_help(inter, cog)
