@@ -5,7 +5,7 @@ _EMBED_COLOR = 0xff8c00
 
 def donate_embed(avatar_url):
     embed = disnake.Embed(color = _EMBED_COLOR)
-    embed.description = 'Thank you for choosing <@968509913531809862> bot!\nHere is the donate information in case you want to support and make the bot thrives even more in the future! All means of support are appreciated :smiling_face_with_3_hearts::kissing_heart:'
+    embed.description = 'Hey! Thank you for choosing <@968509913531809862> bot!\nHere is the `donate information` in case you want to support and make the bot **thrives** even more in the future! All means of support are **appreciated** :kissing_heart:'
 
     embed.set_author(name = 'Donate Information', icon_url = avatar_url)
     embed.set_thumbnail(url = avatar_url)
