@@ -10,7 +10,8 @@ _COGS_NAMES = ["Handles", "Codeforces", "Activities", "Reminders", "Moderator", 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.embed = donate_embed(bot)
+        self.avatar = bot.user.display_avatar.url
+        self.embed = donate_embed(self.avatar)
         self.color = 0xff8c00 # Cheese's color XD
 
     @commands.Cog.listener()
@@ -36,12 +37,11 @@ class Help(commands.Cog):
                     cogs.append(cog)
 
             embed = disnake.Embed(color = self.color)
-            avatar = self.bot.user.display_avatar.url
 
             embed.description = 'Tip: an Community Server for TLE has been opened [here](https://discord.gg/eYNJsDhwdN). Come and say hi!'
 
-            embed.set_author(name = 'TLE Plugins Commands', icon_url = avatar)
-            embed.set_thumbnail(url = avatar)
+            embed.set_author(name = 'TLE Plugins Commands', icon_url = self.avatar)
+            embed.set_thumbnail(url = self.avatar)
             for name in _COGS_NAMES:
                 embed.add_field(name = name, value = f"`/help {name.lower()}`")
 
