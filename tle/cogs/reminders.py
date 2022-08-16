@@ -195,29 +195,24 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         ]
         self.finished_contests = [
             contest for contest in contest_cache
-            if contest.start_time +
-            contest.duration < current_time
+            if contest.start_time + contest.duration < current_time
         ]
         self.active_contests = [
             contest for contest in contest_cache
-            if contest.start_time <= current_time <=
-            contest.start_time + contest.duration
+            if contest.start_time <= current_time <= contest.start_time + contest.duration
         ]
 
         self.active_contests.sort(key=lambda contest: contest.start_time)
         self.finished_contests.sort(
-            key=lambda contest: contest.start_time +
-            contest.duration,
+            key=lambda contest: contest.start_time + contest.duration,
             reverse=True
         )
         self.future_contests.sort(key=lambda contest: contest.start_time)
         # Keep most recent _FINISHED_LIMIT
-        self.finished_contests = \
-            self.finished_contests[:_FINISHED_CONTESTS_LIMIT]
+        self.finished_contests = self.finished_contests[:_FINISHED_CONTESTS_LIMIT]
         self.start_time_map.clear()
         for contest in self.future_contests:
-            self.start_time_map[time.mktime(
-                contest.start_time.timetuple())].append(contest)
+            self.start_time_map[time.mktime(contest.start_time.timetuple())].append(contest)
         self._reschedule_all_tasks()
         await asyncio.sleep(_CONTEST_REFRESH_PERIOD)
         asyncio.create_task(self._update_task())
@@ -235,8 +230,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     def get_guild_contests(self, contests, guild_id, resources=None):
         settings = cf_common.user_db.get_reminder_settings(guild_id)
-        if settings:
-            _, _, _, website_allowed_patterns, website_disallowed_patterns = settings
+        if settings: _, _, _, website_allowed_patterns, website_disallowed_patterns = settings
         website_allowed_patterns = json.loads(website_allowed_patterns) if settings else _WEBSITE_ALLOWED_PATTERNS
         website_disallowed_patterns = json.loads(website_disallowed_patterns) if settings else _WEBSITE_DISALLOWED_PATTERNS
         contests = [contest for contest in contests if contest.is_desired(
@@ -264,8 +258,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         settings = cf_common.user_db.get_reminder_settings(guild_id)
         if settings is None or any(setting is None for setting in settings):
             return
-        channel_id, role_id, before, \
-            website_allowed_patterns, website_disallowed_patterns = settings
+        channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns = settings
 
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
@@ -344,11 +337,10 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
             return await inter.edit_original_message(embed=discord_common.embed_alert(f'{inter.channel.mention} is not text channel.'))
         before = [before]
-        _, _, _, default_allowed_patterns, default_disallowed_patterns = \
-            get_default_guild_settings()
-        cf_common.user_db.set_reminder_settings( \
-            inter.guild.id, inter.channel.id, role.id, json.dumps(before), \
-                json.dumps(default_allowed_patterns), \
+        _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
+        cf_common.user_db.set_reminder_settings(
+            inter.guild.id, inter.channel.id, role.id, json.dumps(before),
+                json.dumps(default_allowed_patterns),
                 json.dumps(default_disallowed_patterns)
             )
         message = f'Contest reminder has successfully been enabled in this channel {inter.channel.mention}.\nType `/remind settings` to show current settings.'
@@ -374,11 +366,10 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         if inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
             return await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'))
         before = [before]
-        _, _, _, default_allowed_patterns, default_disallowed_patterns = \
-            get_default_guild_settings()
-        cf_common.user_db.set_reminder_settings( \
-            inter.guild.id, channel.id, role.id, json.dumps(before), \
-                json.dumps(default_allowed_patterns), \
+        _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
+        cf_common.user_db.set_reminder_settings(
+            inter.guild.id, channel.id, role.id, json.dumps(before),
+                json.dumps(default_allowed_patterns),
                 json.dumps(default_disallowed_patterns)
             )
         message = f'Contest reminder has successfully been enabled in channel {channel.mention}.\nType `/remind settings` to show current settings.'
@@ -393,8 +384,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             disallowed_patterns):
         # load settings
         settings = cf_common.user_db.get_reminder_settings(guild_id)
-        channel_id, role_id, before, \
-            website_allowed_patterns, website_disallowed_patterns = settings
+        channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns = settings
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
@@ -404,15 +394,13 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             if website not in _SUPPORTED_WEBSITES:
                 unsupported_websites.append(website)
                 continue
-            website_allowed_patterns[website] = \
-                allowed_patterns[website]
-            website_disallowed_patterns[website] = \
-                disallowed_patterns[website]
+            website_allowed_patterns[website] = allowed_patterns[website]
+            website_disallowed_patterns[website] = disallowed_patterns[website]
             supported_websites.append(website)
         # save settings
-        cf_common.user_db.set_reminder_settings( \
-            guild_id, channel_id, role_id, json.dumps(before), \
-                json.dumps(website_allowed_patterns), \
+        cf_common.user_db.set_reminder_settings(
+            guild_id, channel_id, role_id, json.dumps(before),
+                json.dumps(website_allowed_patterns),
                 json.dumps(website_disallowed_patterns)
             )
         return supported_websites, unsupported_websites
@@ -444,8 +432,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'))
 
         old_channel, old_role, old_before, website_allowed_patterns, website_disallowed_patterns = settings
-        channel = channel or inter.guild.get_channel(old_channel)
-        role = role or inter.guild.get_role(old_role)
+        channel = channel or inter.guild.get_channel(int(old_channel))
+        role = role or inter.guild.get_role(int(old_role))
         before = [before or old_before]
         if channel is None:
             return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.'))
@@ -487,7 +475,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                 value = website,
                 description = website,
                 label = _RESOURCE_NAMES[website],
-                default = website_allowed_patterns[website] == []
+                default = website_allowed_patterns[website] != []
             ) for website in _SUPPORTED_WEBSITES])
         async def select_callback(_):
             await self.unsubscribe(inter.guild.id, _SUPPORTED_WEBSITES)
@@ -554,7 +542,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     @remind.sub_command(description='Show reminder settings')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def settings(self, inter):
+    async def show_settings(self, inter):
         """
         Shows the reminders role, channel, times, and timezone settings."""
         # load settings
