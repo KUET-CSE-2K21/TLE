@@ -420,7 +420,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     @config.sub_command(description='Configure contest reminder settings')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def settings(self, inter, channel: disnake.TextChannel = None, role: disnake.Role = None, before: commands.Range[0, ...] = None):
+    async def general_settings(self, inter, channel: disnake.TextChannel = None, role: disnake.Role = None, before: commands.Range[0, ...] = None):
         await inter.response.defer(ephemeral = True)
 
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
@@ -530,7 +530,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             subscribed_websites_str = 'No website is subscribed'
 
         before_str = ', '.join(str(before_mins) for before_mins in before)
-        embed = discord_common.embed_success('Type `/remind config [settings/website]` configure these settings.')
+        embed = discord_common.embed_success('Type `/remind config [general_settings/websites]` configure these settings.')
         embed.title = 'Current reminder settings'
         embed.add_field(name='Channel', value=channel.mention)
         embed.add_field(name='Role', value=role.mention)
@@ -542,7 +542,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     @remind.sub_command(description='Show reminder settings')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def show_settings(self, inter):
+    async def settings(self, inter):
         """
         Shows the reminders role, channel, times, and timezone settings."""
         # load settings

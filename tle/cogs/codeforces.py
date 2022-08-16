@@ -853,6 +853,8 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         for d in fake_data:
             start_time, name, challenger, challengee = d
+            challenger = inter.guild.get_member(challenger)
+            challengee = inter.guild.get_member(challengee)
             if challenger != None and challengee != None: data.append(d)
 
         if not data:
