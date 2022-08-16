@@ -10,7 +10,7 @@ _COGS_NAMES = ["Handles", "Codeforces", "Activities", "Reminders", "Moderator", 
 class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.avatar = bot.user.display_avatar.url
+        self.avatar = "https://cdn.discordapp.com/avatars/968509913531809862/a739c2a4de74d91c17026daf7aadc7d8.png?size=1024"
         self.embed = donate_embed(self.avatar)
         self.color = 0xff8c00 # Cheese's color XD
 
