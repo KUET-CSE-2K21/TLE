@@ -315,6 +315,24 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             message=await inter.original_message(),
             wait_time=_CONTEST_PAGINATE_WAIT_TIME, set_pagenum_footers=True)
 
+    async def _verify_reminder_settings(self, inter, channel, role):
+        if channel is None:
+            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure a new reminder channel by using `/remind config settings`.', view = None))
+            return False
+        if role is None:  
+            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure a new reminder role by using `/remind config settings`.', view = None))
+            return False
+        if not role.mentionable:
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'Role `{role.name}` must be mentionable.', view = None))
+            return False
+        if channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.', view = None))
+            return False
+        if channel.permissions_for(inter.guild.me).send_messages == False:
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'Permission for {self.bot.user.mention} to send messages in channel {channel.mention} is required.', view = None))
+            return False
+        return True    
+
     @commands.slash_command(description='Commands for contest reminders')
     async def remind(self, inter):
         pass
@@ -332,10 +350,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         """
         await inter.response.defer(ephemeral = True)
 
-        if not role.mentionable:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('The role for reminders must be mentionable.'))
-        if inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
-            return await inter.edit_original_message(embed=discord_common.embed_alert(f'{inter.channel.mention} is not text channel.'))
+        if not await _verify_reminder_settings(inter, inter.channel, role): return
+
         before = [before]
         _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
         cf_common.user_db.set_reminder_settings(
@@ -361,10 +377,8 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         """
         await inter.response.defer(ephemeral = True)
 
-        if not role.mentionable:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('The role for reminders must be mentionable'))
-        if inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
-            return await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'))
+        if not await _verify_reminder_settings(inter, channel, role): return
+
         before = [before]
         _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
         cf_common.user_db.set_reminder_settings(
@@ -426,19 +440,12 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
         if settings is None:
             return await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.\nYou may want to set a reminder by typing `/remind here` or `/remind inchannel`.'))
-        if role and not role.mentionable:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('The role for reminders must be mentionable.'))
-        if channel and inter.channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
-            return await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'))
 
         old_channel, old_role, old_before, website_allowed_patterns, website_disallowed_patterns = settings
         channel = channel or inter.guild.get_channel(int(old_channel))
         role = role or inter.guild.get_role(int(old_role))
         before = [before or old_before]
-        if channel is None:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.'))
-        if role is None:  
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.'))
+        if not await _verify_reminder_settings(inter, channel, role): return
 
         cf_common.user_db.set_reminder_settings(
             inter.guild.id, channel.id, role.id, json.dumps(before),
@@ -465,10 +472,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         role = inter.guild.get_role(int(role_id))
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
-        if channel is None:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.'))
-        if role is None:  
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.'))
+        if not await _verify_reminder_settings(inter, channel, role): return
 
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
@@ -518,10 +522,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         
         channel = inter.guild.get_channel(channel_id)
         role = inter.guild.get_role(role_id)
-        if channel is None:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.', view = None))
-        if role is None:  
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.', view = None))
+        if not await _verify_reminder_settings(inter, channel, role): return
 
         subscribed_websites_str = ", ".join(
             _RESOURCE_NAMES[website] for website, patterns
@@ -548,20 +549,6 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         # load settings
         await inter.response.defer()
         await self._settings(inter)
-
-    async def _get_remind_role(self, inter):
-        # load settings
-        settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
-        if settings is None:
-            await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.'))
-            return
-        channel_id, role_id, before, \
-            website_allowed_patterns, website_disallowed_patterns = settings
-        role = inter.guild.get_role(int(role_id))
-        if role is None:
-            await inter.edit_original_message('Reminder role missing. Please configure new reminder role by using `/remind config settings`.')
-            return
-        return role
 
     @remind.sub_command(description='Clear all reminder settings')
     @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
