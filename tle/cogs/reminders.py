@@ -444,9 +444,13 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             return await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'))
 
         old_channel, old_role, old_before, website_allowed_patterns, website_disallowed_patterns = settings
-        channel = channel or old_channel
-        role = role or old_role
+        channel = channel or inter.guild.get_channel(old_channel)
+        role = role or inter.guild.get_role(old_role)
         before = [before or old_before]
+        if channel is None:
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.'))
+        if role is None:  
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.'))
 
         cf_common.user_db.set_reminder_settings(
             inter.guild.id, channel.id, role.id, json.dumps(before),
@@ -474,9 +478,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
         if channel is None:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please set another contest reminder.'))
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.'))
         if role is None:  
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please set another contest reminder.'))
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.'))
 
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
@@ -527,9 +531,9 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         channel = inter.guild.get_channel(channel_id)
         role = inter.guild.get_role(role_id)
         if channel is None:
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please set another contest reminder.', view = None))
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure new reminder channel by using `/remind config settings`.', view = None))
         if role is None:  
-            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please set another contest reminder.', view = None))
+            return await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure new reminder role by using `/remind config settings`.', view = None))
 
         subscribed_websites_str = ", ".join(
             _RESOURCE_NAMES[website] for website, patterns
@@ -567,7 +571,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             website_allowed_patterns, website_disallowed_patterns = settings
         role = inter.guild.get_role(int(role_id))
         if role is None:
-            await inter.edit_original_message('Reminder role missing. Please set another contest reminder.')
+            await inter.edit_original_message('Reminder role missing. Please configure new reminder role by using `/remind config settings`.')
             return
         return role
 
@@ -590,7 +594,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         ----------
         timezone: Find your timezone here: pastebin.com/cydNeAyr
         """
-        await inter.response.defer()
+        await inter.response.defer(ephemeral = True)
 
         if not (timezone in pytz.all_timezones):
             desc = 'The given timezone is invalid\n'
