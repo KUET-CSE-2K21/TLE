@@ -629,9 +629,6 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         duelid, challenger_id, challengee_id, start_time, problem_name, contest_id, index, dtype = active
 
-        if challengee_id == inter.author.id:
-            challengee_id, challengee_id = challengee_id, challenger_id
-
         UNSOLVED = 0
         TESTING = -1
 
@@ -656,9 +653,9 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         challenger = inter.guild.get_member(challenger_id)
         challengee = inter.guild.get_member(challengee_id)
-
-        challengee_mention = '`@unknown`'
-        if challengee != None: challengee_mention = challengee.mention
+        if challenger == None or challengee == None:
+            cf_common.user_db.invalidate_duel(duelid)
+            return await inter.edit_original_message(f'Your challenge has been invalidated because one of the challengers left the server.')
 
         if challenger_time and challengee_time:
             if challenger_time != challengee_time:
@@ -669,20 +666,20 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 win_status = Winner.CHALLENGER if winner == challenger else Winner.CHALLENGEE
                 embed = complete_duel(duelid, inter.guild.id, win_status, winner, loser, min(
                     challenger_time, challengee_time), 1, dtype)
-                await inter.edit_original_message(f'Both {challenger.mention} and {challengee_mention} solved it but {winner.mention} was {diff} faster!', embed=embed)
+                await inter.edit_original_message(f'Both {challenger.mention} and {challengee.mention} solved it but {winner.mention} was {diff} faster!', embed=embed)
             else:
                 embed = complete_duel(duelid, inter.guild.id, Winner.DRAW,
                                       challenger, challengee, challenger_time, 0.5, dtype)
-                await inter.edit_original_message(f"{challenger.mention} and {challengee_mention} solved the problem in the exact same amount of time! It's a draw!", embed=embed)
+                await inter.edit_original_message(f"{challenger.mention} and {challengee.mention} solved the problem in the exact same amount of time! It's a draw!", embed=embed)
 
         elif challenger_time:
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER,
                                   challenger, challengee, challenger_time, 1, dtype)
-            await inter.edit_original_message(f'{challenger.mention} beat {challengee_mention} in a duel!', embed=embed)
+            await inter.edit_original_message(f'{challenger.mention} beat {challengee.mention} in a duel!', embed=embed)
         elif challengee_time:
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE,
                                   challengee, challenger, challengee_time, 1, dtype)
-            await inter.edit_original_message(f'{challengee_mention} beat {challenger.mention} in a duel!', embed=embed)
+            await inter.edit_original_message(f'{challengee.mention} beat {challenger.mention} in a duel!', embed=embed)
         else:
             await inter.edit_original_message('Nobody solved the problem yet.')
 
@@ -706,7 +703,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             offeree = inter.guild.get_member(offeree_id)
             if offeree == None:
                 cf_common.user_db.invalidate_duel(duelid)
-                return await inter.edit_original_message(f'You can offer draw because your challenger is not a member of this server.')
+                return await inter.edit_original_message(f'Your challenge has been invalidated because one of the challengers left the server.')
             return await inter.edit_original_message(f'{inter.author.mention} is offering a draw to {offeree.mention}!')
 
         if self.draw_offers[duelid] == inter.author.id:
