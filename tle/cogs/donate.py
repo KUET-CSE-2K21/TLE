@@ -15,13 +15,13 @@ def donate_embed(avatar_url):
 
     return embed
 
-class Donate(commands.Cog):
+class Donate(commands.Cog, description = 'Show information about bot donation'):
     def __init__(self, bot):
         self.bot = bot
         self.avatar = "https://cdn.discordapp.com/avatars/968509913531809862/a739c2a4de74d91c17026daf7aadc7d8.png?size=1024"
         self.embed = donate_embed(self.avatar)
 
-    @commands.slash_command(description='Show donate information')
+    @commands.slash_command(description='Show information about bot donation')
     async def donate(self, inter):
         await inter.response.send_message(embed = self.embed)
 
