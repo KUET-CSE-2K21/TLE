@@ -71,26 +71,26 @@ def get_cf_user(userid, guild_id):
     handle = cf_common.user_db.get_handle(userid, guild_id)
     return cf_common.user_db.fetch_cf_user(handle)
 
-def complete_duel(duelid, guild_id, win_status, winner, loser, finish_time, score, dtype):
-    winner_r = cf_common.user_db.get_duel_rating(winner.id)
-    loser_r = cf_common.user_db.get_duel_rating(loser.id)
+def complete_duel(duelid, guild_id, win_status, winner_id, loser_id, finish_time, score, dtype):
+    winner_r = cf_common.user_db.get_duel_rating(winner_id)
+    loser_r = cf_common.user_db.get_duel_rating(loser_id)
     delta = round(elo_delta(winner_r, loser_r, score))
     rc = cf_common.user_db.complete_duel(
-        duelid, win_status, finish_time, winner.id, loser.id, delta, dtype)
+        duelid, win_status, finish_time, winner_id, loser_id, delta, dtype)
     if rc == 0:
         raise CodeforcesCogError('Hey! No cheating!')
 
     if dtype == DuelType.UNOFFICIAL:
         return None
 
-    winner_cf = get_cf_user(winner.id, guild_id)
-    loser_cf = get_cf_user(loser.id, guild_id)
-    desc = f'Rating change after **[{winner_cf.handle}]({winner_cf.url})** vs **[{loser_cf.handle}]({loser_cf.url})**:'
+    winner_cf = get_cf_user(winner_id, guild_id)
+    loser_cf = get_cf_user(loser_id, guild_id)
+    desc = f'Rating change after <@{winner_id}> vs <@{loser_id}>:'
     embed = discord_common.cf_color_embed(description=desc)
-    embed.add_field(name=f'{winner.display_name}',
-                    value=f'{winner_r} -> {winner_r + delta}', inline=False)
-    embed.add_field(name=f'{loser.display_name}',
-                    value=f'{loser_r} -> {loser_r - delta}', inline=False)
+    embed.add_field(name=f'[{winner_cf.handle}]({winner_cf.url})',
+                    value=f'{winner_r} -> {winner_r + delta} (+{delta})', inline=False)
+    embed.add_field(name=f'[{loser_cf.handle}]({loser_cf.url})',
+                    value=f'{loser_r} -> {loser_r - delta} (-{delta})', inline=False)
     return embed
 
 class Codeforces(commands.Cog, description = "Ask for or challenge your friends with recommended problems"):
@@ -654,35 +654,25 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         if challenger_time == TESTING or challengee_time == TESTING:
             return await inter.edit_original_message(f'Wait a bit, {inter.author.mention}. A submission is still being judged.')
 
-        challenger = inter.guild.get_member(challenger_id)
-        challengee = inter.guild.get_member(challengee_id)
-
-        challengee_mention = '`@unknown`'
-        if challengee != None: challengee_mention = challengee.mention
-
         if challenger_time and challengee_time:
             if challenger_time != challengee_time:
                 diff = cf_common.pretty_time_format(
                     abs(challengee_time - challenger_time), always_seconds=True)
-                winner = challenger if challenger_time < challengee_time else challengee
-                loser = challenger if challenger_time > challengee_time else challengee
-                win_status = Winner.CHALLENGER if winner == challenger else Winner.CHALLENGEE
-                embed = complete_duel(duelid, inter.guild.id, win_status, winner, loser, min(
-                    challenger_time, challengee_time), 1, dtype)
-                await inter.edit_original_message(f'Both {challenger.mention} and {challengee_mention} solved it but {winner.mention} was {diff} faster!', embed=embed)
+                winner = challenger_id if challenger_time < challengee_time else challengee_id
+                loser  = challenger_id if challenger_time > challengee_time else challengee_id
+                win_status = Winner.CHALLENGER if winner == challenger_id else Winner.CHALLENGEE
+                embed = complete_duel(duelid, inter.guild.id, win_status, winner, loser, min(challenger_time, challengee_time), 1, dtype)
+                await inter.edit_original_message(f'Both <@{winner}> and <@{loser}> solved it but <@{winner}> was {diff} faster!', embed=embed)
             else:
-                embed = complete_duel(duelid, inter.guild.id, Winner.DRAW,
-                                      challenger, challengee, challenger_time, 0.5, dtype)
-                await inter.edit_original_message(f"{challenger.mention} and {challengee_mention} solved the problem in the exact same amount of time! It's a draw!", embed=embed)
+                embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, challenger_id, challengee_id, challenger_time, 0.5, dtype)
+                await inter.edit_original_message(f"<@{challenger_id}> and <@{challengee_id}> solved the problem in the exact same amount of time! It's a draw!", embed=embed)
 
         elif challenger_time:
-            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER,
-                                  challenger, challengee, challenger_time, 1, dtype)
-            await inter.edit_original_message(f'{challenger.mention} beat {challengee_mention} in a duel!', embed=embed)
+            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER, challenger_id, challengee_id, challenger_time, 1, dtype)
+            await inter.edit_original_message(f'<@{challenger_id}> beat <@{challengee_id}> in a duel!', embed=embed)
         elif challengee_time:
-            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE,
-                                  challengee, challenger, challengee_time, 1, dtype)
-            await inter.edit_original_message(f'{challengee_mention} beat {challenger.mention} in a duel!', embed=embed)
+            embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE, challengee_id, challenger_id, challengee_time, 1, dtype)
+            await inter.edit_original_message(f'<@{challengee_id}> beat <@{challenger_id}> in a duel!', embed=embed)
         else:
             await inter.edit_original_message('Nobody solved the problem yet.')
 
@@ -706,15 +696,14 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             offeree = inter.guild.get_member(offeree_id)
             if offeree == None:
                 cf_common.user_db.invalidate_duel(duelid)
-                return await inter.edit_original_message(f'You can offer draw because your challenger is not a member of this server.')
+                return await inter.edit_original_message(f'You can offer draw because your challenger is in this server. If you can\'t complete this duel challenge, please try `/duel invalidate`')
             return await inter.edit_original_message(f'{inter.author.mention} is offering a draw to {offeree.mention}!')
 
         if self.draw_offers[duelid] == inter.author.id:
             return await inter.edit_original_message(f'{inter.author.mention}, you\'ve already offered a draw.')
 
         offerer = inter.guild.get_member(self.draw_offers[duelid])
-        embed = complete_duel(duelid, inter.guild.id, Winner.DRAW,
-                              offerer, inter.author, now, 0.5, dtype)
+        embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, offerer_id, inter.author.id, now, 0.5, dtype)
         await inter.edit_original_message(f'{inter.author.mention} accepted draw offer by {offerer.mention}.', embed=embed)
 
     @duel.sub_command(description='Show duelist profile')
