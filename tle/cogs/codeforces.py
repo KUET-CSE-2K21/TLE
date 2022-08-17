@@ -642,6 +642,8 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                     and sub.problem.contestId == contest_id
                     and sub.problem.index == index]
 
+            await inter.channel.send(f'{handle}: {subs}')
+
             if not subs:
                 return UNSOLVED
             if 'TESTING' in [sub.verdict for sub in subs]:
@@ -666,7 +668,6 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             else:
                 embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, challenger_id, challengee_id, challenger_time, 0.5, dtype)
                 await inter.edit_original_message(f"<@{challenger_id}> and <@{challengee_id}> solved the problem in the exact same amount of time! It's a draw!", embed=embed)
-
         elif challenger_time:
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER, challenger_id, challengee_id, challenger_time, 1, dtype)
             await inter.edit_original_message(f'<@{challenger_id}> beat <@{challengee_id}> in a duel!', embed=embed)
