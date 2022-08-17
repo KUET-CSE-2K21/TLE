@@ -448,6 +448,9 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await inter.response.defer()
         message = await inter.original_message()
 
+        if not inter.permissions.administrator:
+            await inter.edit_original_message('You must have Administrator to use this command.\nIf you want to set handle for yourself, try `/handle identify` instead.')
+
         embed = None
         if resource!='codeforces.com':
             users = await clist.account(handle=handle, resource=resource)

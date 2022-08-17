@@ -463,7 +463,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
         if settings is None:
             return await inter.edit_original_message(embed=discord_common.embed_neutral(
-                'You have to set a contest reminder in a channel in advance.'
+                'You have to set a contest reminder for your server in advance.\n'
                 'Set a contest reminder by using `/remind here` or `/remind inchannel`.'
             ))
         channel_id, role_id, before, \

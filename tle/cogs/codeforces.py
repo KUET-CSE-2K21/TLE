@@ -87,10 +87,10 @@ def complete_duel(duelid, guild_id, win_status, winner_id, loser_id, finish_time
     loser_cf = get_cf_user(loser_id, guild_id)
     desc = f'Rating change after <@{winner_id}> vs <@{loser_id}>:'
     embed = discord_common.cf_color_embed(description=desc)
-    embed.add_field(name=f'[{winner_cf.handle}]({winner_cf.url})',
-                    value=f'{winner_r} -> {winner_r + delta} (+{delta})', inline=False)
-    embed.add_field(name=f'[{loser_cf.handle}]({loser_cf.url})',
-                    value=f'{loser_r} -> {loser_r - delta} (-{delta})', inline=False)
+    embed.add_field(name=f'{winner_cf.handle}',
+                    value=f'{winner_r} -> {winner_r + delta} (+{delta})')
+    embed.add_field(name=f'{loser_cf.handle}',
+                    value=f'{loser_r} -> {loser_r - delta} (-{delta})')
     return embed
 
 class Codeforces(commands.Cog, description = "Ask for or challenge your friends with recommended problems"):
