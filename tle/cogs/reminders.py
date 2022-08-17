@@ -317,19 +317,19 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
 
     async def _verify_reminder_settings(self, inter, channel, role):
         if channel is None:
-            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure a new reminder channel by using `/remind config settings`.', view = None))
+            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder channel missing. Please configure a new reminder channel by using `/remind config settings`.'), view = None)
             return False
         if role is None:  
-            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure a new reminder role by using `/remind config settings`.', view = None))
+            await inter.edit_original_message(embed=discord_common.embed_alert('Reminder role missing. Please configure a new reminder role by using `/remind config settings`.'), view = None)
             return False
         if not role.mentionable:
-            await inter.edit_original_message(embed=discord_common.embed_alert(f'Role `{role.name}` must be mentionable.', view = None))
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'Role `{role.name}` must be mentionable.'), view = None)
             return False
         if channel.type not in [disnake.ChannelType.text, disnake.ChannelType.news]:
-            await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.', view = None))
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'{channel.mention} is not a text channel.'), view = None)
             return False
         if channel.permissions_for(inter.guild.me).send_messages == False:
-            await inter.edit_original_message(embed=discord_common.embed_alert(f'Permission for {self.bot.user.mention} to send messages in channel {channel.mention} is required.', view = None))
+            await inter.edit_original_message(embed=discord_common.embed_alert(f'Permission for {self.bot.user.mention} to send messages in channel {channel.mention} is required.'), view = None)
             return False
         return True    
 
