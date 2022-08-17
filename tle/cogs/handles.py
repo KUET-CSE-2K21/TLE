@@ -991,9 +991,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         top_increases_str = []
         for member, change in member_change_pairs[:_TOP_DELTAS_COUNT]:
             delta = change.newRating - change.oldRating
+            delta = f'+{delta}' if delta >= 0 else f'-{-delta}'
+
             increase_str = (f'`{member}` ([{change.handle}]({cf.PROFILE_BASE_URL}{change.handle})): {change.oldRating}'
-                            f' \N{LONG RIGHTWARDS ARROW} {change.newRating}'
-                            f' ({f'+{delta}' if delta >= 0 else f'-{-delta}'})')
+                            f' \N{LONG RIGHTWARDS ARROW} {change.newRating} ({delta})'
             top_increases_str.append(increase_str)
 
         rank_changes_str = rank_changes_str or ['No rank changes']
