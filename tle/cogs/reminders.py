@@ -350,7 +350,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         """
         await inter.response.defer(ephemeral = True)
 
-        if not await _verify_reminder_settings(inter, inter.channel, role): return
+        if not await self._verify_reminder_settings(inter, inter.channel, role): return
 
         before = [before]
         _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
@@ -377,7 +377,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         """
         await inter.response.defer(ephemeral = True)
 
-        if not await _verify_reminder_settings(inter, channel, role): return
+        if not await self._verify_reminder_settings(inter, channel, role): return
 
         before = [before]
         _, _, _, default_allowed_patterns, default_disallowed_patterns = get_default_guild_settings()
@@ -445,7 +445,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         channel = channel or inter.guild.get_channel(int(old_channel))
         role = role or inter.guild.get_role(int(old_role))
         before = [before or old_before]
-        if not await _verify_reminder_settings(inter, channel, role): return
+        if not await self._verify_reminder_settings(inter, channel, role): return
 
         cf_common.user_db.set_reminder_settings(
             inter.guild.id, channel.id, role.id, json.dumps(before),
@@ -472,7 +472,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         role = inter.guild.get_role(int(role_id))
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
-        if not await _verify_reminder_settings(inter, channel, role): return
+        if not await self._verify_reminder_settings(inter, channel, role): return
 
         select = disnake.ui.Select(max_values = len(_SUPPORTED_WEBSITES),
             options = [disnake.SelectOption(
@@ -513,16 +513,15 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
     async def _settings(self, inter):
         settings = cf_common.user_db.get_reminder_settings(inter.guild.id)
         if settings is None:
-            return await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.\nYou may want to set a reminder by typing `/remind here` or `/remind inchannel`.', view = None))
-        channel_id, role_id, before, \
-            website_allowed_patterns, website_disallowed_patterns = settings
+            return await inter.edit_original_message(embed=discord_common.embed_neutral('Contest reminder hasn\'t been set.\nYou may want to set a reminder by typing `/remind here` or `/remind inchannel`.'), view = None)
+        channel_id, role_id, before, website_allowed_patterns, website_disallowed_patterns = settings
         channel_id, role_id, before = int(channel_id), int(role_id), json.loads(before)
         website_allowed_patterns = json.loads(website_allowed_patterns)
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
         
         channel = inter.guild.get_channel(channel_id)
         role = inter.guild.get_role(role_id)
-        if not await _verify_reminder_settings(inter, channel, role): return
+        if not await self._verify_reminder_settings(inter, channel, role): return
 
         subscribed_websites_str = ", ".join(
             _RESOURCE_NAMES[website] for website, patterns
