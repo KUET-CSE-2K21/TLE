@@ -88,9 +88,9 @@ def complete_duel(duelid, guild_id, win_status, winner_id, loser_id, finish_time
     desc = f'Rating change after <@{winner_id}> vs <@{loser_id}>:'
     embed = discord_common.cf_color_embed(description=desc)
     embed.add_field(name=f'{winner_cf.handle}',
-                    value=f'{winner_r} -> {winner_r + delta} (+{delta})')
+                    value=f'{winner_r} \N{LONG RIGHTWARDS ARROW} {winner_r + delta} **(+{delta})**')
     embed.add_field(name=f'{loser_cf.handle}',
-                    value=f'{loser_r} -> {loser_r - delta} (-{delta})')
+                    value=f'{loser_r} \N{LONG RIGHTWARDS ARROW} {loser_r - delta} **(-{delta})**')
     return embed
 
 class Codeforces(commands.Cog, description = "Ask for or challenge your friends with recommended problems"):
@@ -630,7 +630,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         duelid, challenger_id, challengee_id, start_time, problem_name, contest_id, index, dtype = active
 
         if challengee_id == inter.author.id:
-            challengee_id, challengee_id = challengee_id, challenger_id
+            challenger_id, challengee_id = challengee_id, challenger_id
 
         UNSOLVED = 0
         TESTING = -1
@@ -641,8 +641,6 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                     if (sub.verdict == 'OK' or sub.verdict == 'TESTING')
                     and sub.problem.contestId == contest_id
                     and sub.problem.index == index]
-
-            await inter.channel.send(f'{handle}: {subs}')
 
             if not subs:
                 return UNSOLVED

@@ -997,25 +997,22 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             delta = f'+{delta}' if delta >= 0 else f'-{-delta}'
 
             increase_str = (f'`{member}` ([{change.handle}]({cf.PROFILE_BASE_URL}{change.handle})): {change.oldRating}'
-                            f' \N{LONG RIGHTWARDS ARROW} {change.newRating} ({delta})')
+                            f' \N{LONG RIGHTWARDS ARROW} {change.newRating} **({delta})**')
             top_increases_str.append(increase_str)
-
-        rank_changes_str = rank_changes_str or ['No rank changes']
 
         embed_heading = disnake.Embed(
             title=contest.name, url=contest.url, description="")
         embed_heading.set_author(name="Rank updates")
         embeds = [embed_heading]
 
-        for rank_changes_chunk in paginator.chunkify(
-                rank_changes_str, _MAX_RATING_CHANGES_PER_EMBED):
+        for rank_changes_chunk in paginator.chunkify(rank_changes_str, _MAX_RATING_CHANGES_PER_EMBED):
             desc = '\n'.join(rank_changes_chunk)
             embed = disnake.Embed(description=desc)
             embeds.append(embed)
 
         top_rating_increases_embed = disnake.Embed(description='\n'.join(
-            top_increases_str) or 'Nobody got a positive delta :(')
-        top_rating_increases_embed.set_author(name='Top rating increases')
+            top_increases_str) or 'Nobody has joined the contest :(')
+        top_rating_increases_embed.set_author(name='Top rating changes')
 
         embeds.append(top_rating_increases_embed)
         discord_common.set_same_cf_color(embeds)
@@ -1130,8 +1127,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         rankup_embeds = self._make_rankup_embeds(inter.guild, contest, change_by_handle)
         
         await inter.delete_original_message()
-        for rankup_embed in rankup_embeds:
-            await inter.channel.send(embed=rankup_embed)
+        for rankup_embed in rankup_embeds: await inter.channel.send(embed=rankup_embed)
 
     @discord_common.send_error_if(HandleCogError, cf_common.HandleIsVjudgeError)
     async def cog_slash_command_error(self, inter, error):
