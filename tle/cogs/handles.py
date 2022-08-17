@@ -982,7 +982,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 old_role = rating_to_displayable_rank(change.oldRating)
             new_role = rating_to_displayable_rank(change.newRating)
             if new_role != old_role:
-                rank_change_str = (f'`{member}` [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {old_role} '
+                rank_change_str = (f'`{member}` ([{change.handle}]({cf.PROFILE_BASE_URL}{change.handle})): {old_role} '
                                    f'\N{LONG RIGHTWARDS ARROW} {new_role}')
                 rank_changes_str.append(rank_change_str)
 
@@ -991,11 +991,9 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         top_increases_str = []
         for member, change in member_change_pairs[:_TOP_DELTAS_COUNT]:
             delta = change.newRating - change.oldRating
-            if delta <= 0:
-                break
-            increase_str = (f'`{member}` [{change.handle}]({cf.PROFILE_BASE_URL}{change.handle}): {change.oldRating} '
-                            f'\N{HORIZONTAL BAR} **{delta:+}** \N{LONG RIGHTWARDS ARROW} '
-                            f'{change.newRating}')
+            increase_str = (f'`{member}` ([{change.handle}]({cf.PROFILE_BASE_URL}{change.handle})): {change.oldRating}'
+                            f' \N{LONG RIGHTWARDS ARROW} {change.newRating}'
+                            f' ({f'+{delta}' if delta >= 0 else f'-{-delta}'})')
             top_increases_str.append(increase_str)
 
         rank_changes_str = rank_changes_str or ['No rank changes']

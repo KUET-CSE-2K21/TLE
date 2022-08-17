@@ -2,6 +2,8 @@
 
 TLE is a Discord bot centered around Competitive Programming.
 
+**NOTE:** This is only a forked project. The [original project](https://github.com/cheran-senthil/TLE) is in possession of [cheran-senthil](https://github.com/cheran-senthil).
+
 ## Main features
 
 ✔️ Recommend problems (can be given rating and tags).
