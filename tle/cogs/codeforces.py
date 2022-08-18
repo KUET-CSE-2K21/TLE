@@ -495,7 +495,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         rc = cf_common.user_db.register_duelist(member.id)
 
     @duel.sub_command(description='Challenge another server member to a duel')
-    async def challenge(self, inter, opponent: disnake.Member, rating: int = None):
+    async def challenge(self, inter, opponent: disnake.Member, rating: commands.Range[800, 3500] = None):
         """
         Parameters
         ----------
@@ -544,6 +544,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                     and not any(cf_common.is_contest_writer(prob.contestId, handle) for handle in handles)
                     and not cf_common.is_nonstandard_problem(prob)]
 
+        problems = []
         for problems in map(get_problems, range(rating, 400, -100)):
             if problems:
                 break

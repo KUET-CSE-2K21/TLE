@@ -444,14 +444,14 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         old_channel, old_role, old_before, website_allowed_patterns, website_disallowed_patterns = settings
         channel = channel or inter.guild.get_channel(int(old_channel))
         role = role or inter.guild.get_role(int(old_role))
-        before = [before or old_before]
+        before = [before] if before or json.loads(old_before)
         if not await self._verify_reminder_settings(inter, channel, role): return
 
         cf_common.user_db.set_reminder_settings(
             inter.guild.id, channel.id, role.id, json.dumps(before),
             website_allowed_patterns, website_disallowed_patterns
         )
-        message = f'Contest reminder has been updated!\nType `/remind settings` to show new settings.'
+        message = f'Contest reminder has successfully been updated!\nType `/remind settings` to show new settings.'
         await inter.edit_original_message(embed = discord_common.embed_success(message))
         self._reschedule_tasks(inter.guild.id)
 
