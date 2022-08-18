@@ -434,7 +434,6 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             await member.add_roles(role_to_assign, reason=reason)
 
     @handle.sub_command(description='Set handle of a user')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
     async def set(self, inter, member: disnake.Member, handle: str, resource: _CP_PLATFORMS = "codeforces.com"):
         """
         Set codeforces/codechef/atcoder/google handle of a user.
