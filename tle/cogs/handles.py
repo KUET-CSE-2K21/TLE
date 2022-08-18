@@ -448,7 +448,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         message = await inter.original_message()
 
         if not inter.permissions.administrator:
-            await inter.edit_original_message('You must have Administrator to use this command.\nIf you want to set handle for yourself, try `/handle identify` instead.')
+            message = 'You must have Administrator to use this command.\nIf you want to set handle for yourself, try `/handle identify` instead.'
+            return await inter.edit_original_message(discord_common.embed_alert(message))
 
         embed = None
         if resource!='codeforces.com':
