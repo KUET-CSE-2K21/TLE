@@ -770,7 +770,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         Parameters
         ----------
         resource: Competitive Programming platform (default is CodeForces)
-        countries: List handles of specified countries (separated by semicolon, e.g. vietnam; united states)
+        countries: Countries are separated by semicolon (e.g. vietnam; united states)
         """
         await inter.response.defer()
 
