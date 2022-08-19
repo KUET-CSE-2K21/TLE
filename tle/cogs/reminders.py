@@ -444,7 +444,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         old_channel, old_role, old_before, website_allowed_patterns, website_disallowed_patterns = settings
         channel = channel or inter.guild.get_channel(int(old_channel))
         role = role or inter.guild.get_role(int(old_role))
-        before = [before] if before or json.loads(old_before)
+        before = [before] if before else json.loads(old_before)
         if not await self._verify_reminder_settings(inter, channel, role): return
 
         cf_common.user_db.set_reminder_settings(
