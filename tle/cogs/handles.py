@@ -93,6 +93,13 @@ ATCODER_RATED_RANKS = (
     cf.Rank(2800, 10**9, 'Red', 'Red', '#FFB2B2', 0xF70000)
 )
 
+# to reformat country names
+ARTICLES = ["and", "or", "the"]
+SPECIAL_COUNTRY_NAME_WORD = {
+    "u.s.": "U.S.",
+    "guinea-bissau": "Guinea-Bissau"
+}
+
 class HandleCogError(commands.CommandError):
     pass
 
@@ -763,20 +770,44 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         Parameters
         ----------
         resource: Competitive Programming platform (default is CodeForces)
-        countries: List handles of specified countries (separated by spaces)
+        countries: List handles of specified countries (separated by semicolon)
         """
         await inter.response.defer()
 
-        countries = countries.split()
+        def reformat_country_name(country: string):
+            country = country.lstrip().rstrip()
+            words = country.split()
+
+            for (index, word) in enumerate(words):
+                word = word.lower()
+                if word in ARTICLES:
+                    words[index] = word
+                    continue
+
+                if word in SPECIAL_COUNTRY_NAME_WORD:
+                    word = SPECIAL_COUNTRY_NAME_WORD.get(word)
+                else:
+                    word = word.capitalize()
+
+                words[index] = word
+
+            return " ".join(words)
+
+
+        countries = countries.split(';')
+        countries = [reformat_country_name(country) for country in countries if country != ""]
 
         users = None
-        if resource=='codeforces.com':
+        if resource == 'codeforces.com':
             res = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
-            users = [(inter.guild.get_member(user_id), cf_user.handle, cf_user.rating)
-                    for user_id, cf_user in res if countries == [] or cf_user.country in countries]
+            users = [
+                (inter.guild.get_member(user_id), cf_user.handle, cf_user.rating)
+                for user_id, cf_user in res
+                    if (not countries) or (cf_user.country in countries)
+            ]
             users = [(member, handle, rating, 0) for member, handle, rating in users if member is not None]
         else:
-            if countries == []: return await inter.edit_original_message(
+            if not countries: return await inter.edit_original_message(
                 "Countries can currently only be specified for CodeForces users.")
             account_ids = cf_common.user_db.get_account_ids_for_resource(inter.guild.id ,resource)
             members = {}
