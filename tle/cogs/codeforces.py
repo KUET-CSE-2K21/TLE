@@ -668,11 +668,11 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, challenger_id, challengee_id, challenger_time, 0.5, dtype)
                 await inter.edit_original_message(f"<@{challenger_id}> and <@{challengee_id}> solved the problem in the exact same amount of time! It's a draw!", embed=embed)
         elif challenger_time:
-            diff = cf_common.pretty_time_format(challenger_time, always_seconds=True)
+            diff = cf_common.pretty_time_format(abs(challenger_time - start_time), always_seconds=True)
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER, challenger_id, challengee_id, challenger_time, 1, dtype)
             await inter.edit_original_message(f'<@{challenger_id}> beat <@{challengee_id}> in a duel after {diff}!', embed=embed)
         elif challengee_time:
-            diff = cf_common.pretty_time_format(challengee_time, always_seconds=True)
+            diff = cf_common.pretty_time_format(abs(challengee_time - start_time), always_seconds=True)
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE, challengee_id, challenger_id, challengee_time, 1, dtype)
             await inter.edit_original_message(f'<@{challengee_id}> beat <@{challenger_id}> in a duel after {diff}!', embed=embed)
         else:
@@ -778,16 +778,13 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         def make_line(entry):
             duelid, start_time, finish_time, name, challenger, challengee, winner = entry
-            duel_time = cf_common.pretty_time_format(
-                finish_time - start_time, shorten=True, always_seconds=True)
+            duel_time = cf_common.pretty_time_format(finish_time - start_time, shorten=True, always_seconds=True)
             problem = cf_common.cache2.problem_cache.problem_by_name[name]
             when = cf_common.days_ago(start_time)
             idstr = f'{duelid}: '
             if winner != Winner.DRAW:
-                loser = inter.guild.get_member(challenger if winner ==
-                                    Winner.CHALLENGEE else challengee)
-                winner = inter.guild.get_member(challenger if winner ==
-                                     Winner.CHALLENGER else challengee)
+                loser = inter.guild.get_member(challenger if winner == Winner.CHALLENGEE else challengee)
+                winner = inter.guild.get_member(challenger if winner == Winner.CHALLENGER else challengee)
                 return f'{idstr if show_id else str()}[{name}]({problem.url}) [{problem.rating}] won by `{winner}` vs `{loser}` {when} in {duel_time}'
             else:
                 challenger = inter.guild.get_member(challenger)
