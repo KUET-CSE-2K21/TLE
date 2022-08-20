@@ -611,7 +611,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         start_time = datetime.datetime.now().timestamp()
         rc = cf_common.user_db.start_duel(duelid, start_time)
-        if rc != 1: return await inter.channel.send(discord_common.embed_alert(f'Unable to start the duel between {challenger.mention} and {inter.author.mention}.'))
+        if rc != 1: return await inter.channel.send(embed = discord_common.embed_alert(f'Unable to start the duel between {challenger.mention} and {inter.author.mention}.'))
 
         problem = cf_common.cache2.problem_cache.problem_by_name[name]
         title = f'{problem.index}. {problem.name}'
@@ -668,11 +668,13 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, challenger_id, challengee_id, challenger_time, 0.5, dtype)
                 await inter.edit_original_message(f"<@{challenger_id}> and <@{challengee_id}> solved the problem in the exact same amount of time! It's a draw!", embed=embed)
         elif challenger_time:
+            diff = cf_common.pretty_time_format(challenger_time, always_seconds=True)
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGER, challenger_id, challengee_id, challenger_time, 1, dtype)
-            await inter.edit_original_message(f'<@{challenger_id}> beat <@{challengee_id}> in a duel!', embed=embed)
+            await inter.edit_original_message(f'<@{challenger_id}> beat <@{challengee_id}> in a duel after {diff}!', embed=embed)
         elif challengee_time:
+            diff = cf_common.pretty_time_format(challengee_time, always_seconds=True)
             embed = complete_duel(duelid, inter.guild.id, Winner.CHALLENGEE, challengee_id, challenger_id, challengee_time, 1, dtype)
-            await inter.edit_original_message(f'<@{challengee_id}> beat <@{challenger_id}> in a duel!', embed=embed)
+            await inter.edit_original_message(f'<@{challengee_id}> beat <@{challenger_id}> in a duel after {diff}!', embed=embed)
         else:
             await inter.edit_original_message('Nobody solved the problem yet.')
 

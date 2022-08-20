@@ -398,8 +398,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             if channel is not None:
                 with contextlib.suppress(HandleCogError):
                     embeds = self._make_rankup_embeds(guild, contest, change_by_handle)
-                    for embed in embeds:
-                        await channel.send(embed=embed)
+                    await channel.send(embeds = embeds)
 
         await asyncio.gather(*(update_for_guild(guild) for guild in self.bot.guilds),
                              return_exceptions=True)
@@ -456,7 +455,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
         if not inter.permissions.administrator:
             message = 'You must have Administrator to use this command.\nIf you want to set handle for yourself, try `/handle identify` instead.'
-            return await inter.edit_original_message(discord_common.embed_alert(message))
+            return await inter.edit_original_message(embed = discord_common.embed_alert(message))
 
         embed = None
         if resource!='codeforces.com':
@@ -1157,8 +1156,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         change_by_handle = {change.handle: change for change in changes}
         rankup_embeds = self._make_rankup_embeds(inter.guild, contest, change_by_handle)
         
-        await inter.delete_original_message()
-        for rankup_embed in rankup_embeds: await inter.channel.send(embed=rankup_embed)
+        await inter.edit_original_message(embeds = rankup_embeds)
 
     @discord_common.send_error_if(HandleCogError, cf_common.HandleIsVjudgeError)
     async def cog_slash_command_error(self, inter, error):
