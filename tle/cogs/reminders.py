@@ -40,6 +40,7 @@ def _contest_start_time_format(contest, tz):
     tz = str(tz)
     if tz == 'Asia/Kolkata': tz = 'IST'
     if tz == 'Asia/Ho_Chi_Minh': tz = 'ICT'
+    if tz == 'Etc/GMT0': tz = 'GMT'
     return f'{start.strftime("%d %b %y, %H:%M")} {tz}'
 
 
@@ -101,6 +102,7 @@ async def _send_reminder_at(channel, role, contests, before_secs, send_time,
     for name, value in _get_embed_fields_from_contests(
             contests, localtimezone):
         embed.add_field(name=name, value=value)
+    embed.timestamp = datetime.datetime.utcnow()
     await channel.send(role.mention, embed=embed)
 
 _WEBSITE_ALLOWED_PATTERNS = defaultdict(list)

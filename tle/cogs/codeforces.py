@@ -420,7 +420,11 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         """
         await inter.response.defer()
 
+        await cf_common.resolve_handles(inter, self.converter, ('!' + str(member),))
         active = cf_common.user_db.check_challenge(member.id)
+        if not active:
+            return await inter.edit_original_message(f'`{member}` do not have an active challenge')
+
         rc = cf_common.user_db.skip_challenge(member.id, active[0], Gitgud.FORCED_NOGUD)
         if rc == 1:
             await inter.edit_original_message(f'Challenge skip forced.')
