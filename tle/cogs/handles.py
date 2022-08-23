@@ -647,7 +647,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other Codeforces or Codechef roles, then type `/roleupdate codechef` to try updating roles again.')
 
     @handle.sub_command(description='Remove handle for a user')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def remove(self, inter, member: disnake.Member):
         """
         Remove all CP handles of a user.
@@ -676,7 +676,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await self._unmagic_handles(inter, [handle], {handle: member})
 
     @handle.sub_command(description='Resolve all CF handles needing redirection')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def unmagic_all(self, inter):
         """
         Updates handles of all users that have changed handles
@@ -1050,7 +1050,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         return embeds
 
     @commands.slash_command(description='Commands for role updates')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def roleupdate(self, inter, choice: str = commands.Param(choices=["now", "codechef"])):
         """
         Group for commands involving role updates.
@@ -1058,7 +1058,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         pass
 
     @roleupdate.sub_command(description='Update roles for Codeforces handles')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def codeforces(self, inter):
         """
         Update roles for Codeforces handles
@@ -1068,7 +1068,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await inter.edit_original_message(embed=discord_common.embed_success('Roles updated successfully.'))
 
     @roleupdate.sub_command(description='Update roles for Codechef handles')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def codechef(self, inter):
         """
         Update roles for Codechef handles
@@ -1078,7 +1078,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await inter.edit_original_message(embed=discord_common.embed_success('Roles updated successfully.'))
     
     @roleupdate.sub_command(description='Enable or disable auto role updates')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def auto(self, inter, choice: str = commands.Param(choices=["on", "off"])):
         """Auto role update refers to automatic updating of rank roles when rating
         changes are released on Codeforces. 'on'/'off' disables or enables auto role
@@ -1107,7 +1107,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         pass
 
     @publish.sub_command(description='Auto publish rank update in this channel')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def auto(self, inter, choice: str = commands.Param(choices=['here', 'off'])):
         """
         Automatically publish the summary to this channel whenever rating changes on Codeforces are released.

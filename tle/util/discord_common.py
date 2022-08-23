@@ -107,6 +107,10 @@ def send_error_if(*error_cls):
         return wrapper
     return decorator
 
+def is_guild_owner_predicate(inter):
+    return inter.guild is not None and inter.guild.owner_id == inter.author.id
+def is_guild_owner():
+    return commands.check(is_guild_owner_predicate)
 
 async def bot_error_handler(inter, exception):
     if getattr(exception, 'handled', False):

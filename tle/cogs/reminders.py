@@ -340,7 +340,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         pass
 
     @remind.sub_command(description='Set contest reminder to current channel')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def here(self, inter, role: disnake.Role, before: commands.Range[0, ...] = 300):
         """
         Sets reminder channel to current channel, role to the given role, and reminder times to the given values in minutes.
@@ -366,7 +366,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         self._reschedule_tasks(inter.guild.id)
 
     @remind.sub_command(description='Set contest reminder in a specified channel')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def inchannel(self, inter, channel: disnake.TextChannel, role: disnake.Role, before: commands.Range[0, ...] = 300):
         """
         Sets reminder channel to a specified channel, role to the given role, and reminder times to the given values in minutes.
@@ -430,12 +430,12 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         self._set_guild_setting(guild_id, websites, defaultdict(list), defaultdict(lambda: ['']))
 
     @remind.sub_command_group(description='Configure contest reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def config(self, inter):
         pass
 
     @config.sub_command(description='Configure contest reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def general_settings(self, inter, channel: disnake.TextChannel = None, role: disnake.Role = None, before: commands.Range[0, ...] = None):
         await inter.response.defer(ephemeral = True)
 
@@ -458,7 +458,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         self._reschedule_tasks(inter.guild.id)
 
     @config.sub_command(description='Change websites for contest reminder')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def websites(self, inter):
         await inter.response.defer(ephemeral = True)
 
@@ -543,7 +543,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         await inter.edit_original_message(content = '', embed=embed, view = None)
 
     @remind.sub_command(description='Show reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def settings(self, inter):
         """
         Shows the reminders role, channel, times, and timezone settings."""
@@ -552,7 +552,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         await self._settings(inter)
 
     @remind.sub_command(description='Clear all reminder settings')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def disable(self, inter):
         await inter.response.defer()
 
@@ -561,7 +561,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         self._reschedule_tasks(inter.guild.id)
 
     @commands.slash_command(description='Set the server\'s timezone', usage=' <timezone>')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def settz(self, inter, timezone: str):
         """
         Sets the server's timezone to the given timezone.

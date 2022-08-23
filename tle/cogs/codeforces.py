@@ -392,27 +392,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
     @commands.slash_command(description='Skip challenge')
     @cf_common.user_guard(group='gitgud')
-    async def nogud(self, inter):
-        await inter.response.defer()
-
-        await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
-        user_id = inter.author.id
-        active = cf_common.user_db.check_challenge(user_id)
-        if not active:
-            return await inter.edit_original_message(f'You do not have an active challenge')
-
-        challenge_id, issue_time, name, contestId, index, delta = active
-        finish_time = int(datetime.datetime.now().timestamp())
-        if finish_time - issue_time < _GITGUD_NO_SKIP_TIME:
-            skip_time = cf_common.pretty_time_format(issue_time + _GITGUD_NO_SKIP_TIME - finish_time)
-            return await inter.edit_original_message(f'Think more. You can skip your challenge in {skip_time}.')
-        cf_common.user_db.skip_challenge(user_id, challenge_id, Gitgud.NOGUD)
-        await inter.edit_original_message(f'Challenge skipped.')
-
-    @commands.slash_command(description='Force skip a challenge')
-    @cf_common.user_guard(group='gitgud')
-    @commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
-    async def _nogud(self, inter, member: disnake.Member):
+    async def nogud(self, inter, member: disnake.Member = None):
         """
         Parameters
         ----------
@@ -420,16 +400,27 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         """
         await inter.response.defer()
 
+        member = member or inter.author
         await cf_common.resolve_handles(inter, self.converter, ('!' + str(member),))
         active = cf_common.user_db.check_challenge(member.id)
         if not active:
-            return await inter.edit_original_message(f'`{member}` do not have an active challenge')
+            revoker = 'You' if member == inter.author else f'`{member}`'
+            return await inter.edit_original_message(f'{revoker} do not have an active challenge')
 
-        rc = cf_common.user_db.skip_challenge(member.id, active[0], Gitgud.FORCED_NOGUD)
+        has_perm = await self.bot.is_owner(inter.author) \
+            or inter.author.guild_permissions.administrator \
+            or discord_common.is_guild_owner_predicate(inter.author)
+
+        challenge_id, issue_time, name, contestId, index, delta = active
+        finish_time = int(datetime.datetime.now().timestamp())
+        if not has_perm and finish_time - issue_time < _GITGUD_NO_SKIP_TIME:
+            skip_time = cf_common.pretty_time_format(issue_time + _GITGUD_NO_SKIP_TIME - finish_time)
+            return await inter.edit_original_message(f'Think more. You can skip your challenge in {skip_time}.')
+        rc = cf_common.user_db.skip_challenge(member.id, challenge_id, Gitgud.NOGUD)
         if rc == 1:
-            await inter.edit_original_message(f'Challenge skip forced.')
+            await inter.edit_original_message(f'Challenge skipped.')
         else:
-            await inter.edit_original_message(f'Failed to force challenge skip.')
+            await inter.edit_original_message(f'Failed to skip challenge.')
 
     @commands.slash_command(description='Recommend a contest')
     async def vc(self, inter, handles: str = None, pattern: str = ""):
@@ -928,7 +919,10 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         """
         await inter.response.defer()
 
-        if inter.author.guild_permissions.administrator == False and member != None:
+        has_perm = await self.bot.is_owner(inter.author) \
+            or inter.author.guild_permissions.administrator \
+            or discord_common.is_guild_owner_predicate(inter.author)
+        if not has_perm and member != None:
             return await inter.edit_original_message(f'{inter.author.mention}, you can\'t invalidate other members\' duel.')
 
         if member == None: member = inter.author
@@ -936,7 +930,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         if not active: return await inter.edit_original_message(f'Member `{member}` is not in a duel.')
 
         duelid, challenger_id, challengee_id, start_time, _, _, _, _ = active
-        if datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME and inter.author.guild_permissions.administrator == False:
+        if not has_perm and datetime.datetime.now().timestamp() - start_time > _DUEL_INVALIDATE_TIME:
             return await inter.edit_original_message(f'{inter.author.mention}, you can no longer invalidate your duel.\nPlease offer a draw or ask a moderator to invalidate your duel.')
         await self.invalidate_duel(inter, duelid, challenger_id, challengee_id)
 

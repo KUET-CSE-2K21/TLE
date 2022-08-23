@@ -131,19 +131,19 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
             await inter.response.send_message('Invalid math expression. Please try again!')
     
     @commands.slash_command(description='Create roles for codeforces/codechef')
-    @commands.check_any(commands.has_any_role('Admin'), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def createroles(self, inter):
         pass
     
     @createroles.sub_command(description='Create roles for codeforces ranks')
-    @commands.check_any(commands.has_any_role('Admin'), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def codeforces(self, inter):
         await inter.response.defer()
         await _create_roles(inter.guild, CODEFORCES_RATED_RANKS)
         await inter.edit_original_message(embed=discord_common.embed_success('Roles created successfully.'))
 
     @createroles.sub_command(description='Create roles for codechef stars')
-    @commands.check_any(commands.has_any_role('Admin'), commands.is_owner())
+    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
     async def codechef(self, inter):
         await inter.response.defer()
         await _create_roles(inter.guild, CODECHEF_RATED_RANKS)
