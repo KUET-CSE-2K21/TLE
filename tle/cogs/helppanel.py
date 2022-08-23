@@ -53,6 +53,8 @@ class Help(commands.Cog):
                 )
 
             async def select_callback(_):
+                if inter.author != _.author:
+                    return await _.response.defer()
                 if select.values[0] == "Donate":
                     return await inter.edit_original_message(
                         embed = self.embed, view = None)
