@@ -67,7 +67,7 @@ class Paginated:
             await self.message.add_reaction(react)
 
         def check(reaction, user):
-            return (user not in [bot.user, inter.author] and
+            return (user == inter.author and
                     reaction.message.id == self.message.id and
                     reaction.emoji in self.reaction_map)
 
