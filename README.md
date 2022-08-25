@@ -6,6 +6,8 @@ TLE is a Discord bot centered around Competitive Programming.
 
 ## Main features
 
+✔️ Support slash commands.
+
 ✔️ Recommend problems (can be given rating and tags).
 
 ✔️ Recommend / create mashup contest.
@@ -25,23 +27,3 @@ TLE is a Discord bot centered around Competitive Programming.
 ✔️ Update members' role after finished contests.
 
 ✔️ Automatically create codeforces/codechef roles.
-
-## Upcomming features
-
-✔️ Remade help panel.
-
-⌛ Ultra-precise calculator (with some maths function).
-
-✔️ `/handle list` will be filtered with specified countries.
-
-✔️ Migrating the bot's features to Slash commands.
-
-## Known bugs
-
-✔️ [FIXED] `/settz` cannot work properly with `/clist`.
-
-✔️ [FIXED] Repeated contest publish in publish channel.
-
-✔️ [FIXED] User database does not auto-update correctly.
-
-✔️ [FIXED] Cannot identify new handle.

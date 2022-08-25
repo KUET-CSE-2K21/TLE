@@ -276,7 +276,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
             if not contests:
                 continue
             for before_mins in before:
-                before_secs = 60 * int(before_mins)
+                before_secs = 60 * before_mins
                 task = asyncio.create_task(
                     _send_reminder_at(
                         channel,

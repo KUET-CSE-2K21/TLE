@@ -1392,15 +1392,15 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
 
         Parameters
         ----------
-        countries: List of countries to plot distribution (separated by spaces)
+        countries: e.g: "vietnam; united states" (without quotes)
         """
         await inter.response.defer()
 
-        countries = tuple(countries.split())
+        countries = countries.split(';')
+        countries = [cf_common.reformat_country_name(country) for country in countries if country != ""]
 
-        max_countries = 8
-        if len(countries) > max_countries:
-            raise ActivitiesCogError(f'At most {max_countries} countries may be specified.')
+        if len(countries) > 8:
+            raise ActivitiesCogError(f'At most 8 countries may be specified.')
 
         users = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
         counter = collections.Counter(user.country for _, user in users if user.country)

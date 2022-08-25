@@ -700,7 +700,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             return await inter.edit_original_message(f'{inter.author.mention}, you\'ve already offered a draw.')
 
         offerer = inter.guild.get_member(self.draw_offers[duelid])
-        embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, offerer_id, inter.author.id, now, 0.5, dtype)
+        embed = complete_duel(duelid, inter.guild.id, Winner.DRAW, offerer.id, inter.author.id, now, 0.5, dtype)
         await inter.edit_original_message(f'{inter.author.mention} accepted draw offer by {offerer.mention}.', embed=embed)
 
     @duel.sub_command(description='Show duelist profile')
@@ -919,13 +919,13 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         """
         await inter.response.defer()
 
+        member = member or inter.author
         has_perm = await self.bot.is_owner(inter.author) \
             or inter.author.guild_permissions.administrator \
             or discord_common.is_guild_owner_predicate(inter.author)
-        if not has_perm and member != None:
+        if not has_perm and member != inter.author:
             return await inter.edit_original_message(f'{inter.author.mention}, you can\'t invalidate other members\' duel.')
 
-        if member == None: member = inter.author
         active = cf_common.user_db.check_duel_complete(member.id)
         if not active: return await inter.edit_original_message(f'Member `{member}` is not in a duel.')
 

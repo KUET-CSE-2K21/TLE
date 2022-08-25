@@ -105,6 +105,13 @@ _NONSTANDARD_CONTEST_INDICATORS = [
     'wild', 'fools', 'surprise', 'unknown', 'friday', 'q#', 'testing',
     'marathon', 'kotlin', 'onsite', 'experimental', 'abbyy']
 
+SPECIAL_COUNTRY_NAME_WORD = {
+    "u.s.": "U.S.",
+    "guinea-bissau": "Guinea-Bissau"
+}
+
+# to reformat country names
+ARTICLES = ["and", "or", "the"]
 
 def is_nonstandard_contest(contest):
     return any(string in contest.name.lower() for string in _NONSTANDARD_CONTEST_INDICATORS)
@@ -218,6 +225,25 @@ def days_ago(t):
     if days < 2:
         return 'yesterday'
     return f'{math.floor(days)} days ago'
+
+def reformat_country_name(country: string):
+    country = country.lstrip().rstrip()
+    words = country.split()
+
+    for (index, word) in enumerate(words):
+        word = word.lower()
+        if word in ARTICLES:
+            words[index] = word
+            continue
+
+        if word in SPECIAL_COUNTRY_NAME_WORD:
+            word = SPECIAL_COUNTRY_NAME_WORD.get(word)
+        else:
+            word = word.capitalize()
+
+        words[index] = word
+
+    return " ".join(words)
 
 async def resolve_handles(inter, converter, handles, *, mincnt=1, maxcnt=5, default_to_all_server=False, resource='codeforces.com'):
     """Convert an iterable of strings to CF handles. A string beginning with ! indicates Discord username,

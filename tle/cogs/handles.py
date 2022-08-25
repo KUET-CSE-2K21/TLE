@@ -93,13 +93,6 @@ ATCODER_RATED_RANKS = (
     cf.Rank(2800, 10**9, 'Red', 'Red', '#FFB2B2', 0xF70000)
 )
 
-# to reformat country names
-ARTICLES = ["and", "or", "the"]
-SPECIAL_COUNTRY_NAME_WORD = {
-    "u.s.": "U.S.",
-    "guinea-bissau": "Guinea-Bissau"
-}
-
 class HandleCogError(commands.CommandError):
     pass
 
@@ -487,7 +480,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                     try:
                         await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
                     except disnake.Forbidden:
-                        message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.'
+                        message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.'
                         embed = discord_common.embed_neutral(message)
                         if old_message == None:
                             await inter.send(embed = embed)
@@ -522,7 +515,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             await self.update_member_rank_role(member, roles[0], reason='New handle set for user')
         except disnake.Forbidden:
             if not nolog:
-                message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.'
+                message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.'
                 embed = discord_common.embed_neutral(message)
                 if old_message == None:
                     await inter.send(embed = embed)
@@ -644,11 +637,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
             await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
         except disnake.Forbidden:
-            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE has a higher role than other Codeforces or Codechef roles, then type `/roleupdate codechef` to try updating roles again.')
+            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other Codeforces or CodeChef roles, then type `/roleupdate` to try updating roles again.')
 
     @handle.sub_command(description='Remove handle for a user')
-    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def remove(self, inter, member: disnake.Member):
+    async def remove(self, inter, member: disnake.Member = None):
         """
         Remove all CP handles of a user.
 
@@ -656,6 +648,15 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         ----------
         member: Member to remove handles
         """
+
+        member = member or inter.author
+        has_perm = await self.bot.is_owner(inter.author) \
+            or inter.author.guild_permissions.administrator \
+            or discord_common.is_guild_owner_predicate(inter.author)
+
+        if not has_perm and member != inter.author:
+            return await inter.edit_original_message(f'{inter.author.mention}, you can\'t remove other members\' handle.')
+
         await self._remove(member)
         embed = discord_common.embed_success(f'Handle for `{member}` has been removed.')
         await inter.response.send_message(embed=embed)
@@ -773,28 +774,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         """
         await inter.response.defer()
 
-        def reformat_country_name(country: string):
-            country = country.lstrip().rstrip()
-            words = country.split()
-
-            for (index, word) in enumerate(words):
-                word = word.lower()
-                if word in ARTICLES:
-                    words[index] = word
-                    continue
-
-                if word in SPECIAL_COUNTRY_NAME_WORD:
-                    word = SPECIAL_COUNTRY_NAME_WORD.get(word)
-                else:
-                    word = word.capitalize()
-
-                words[index] = word
-
-            return " ".join(words)
-
-
         countries = countries.split(';')
-        countries = [reformat_country_name(country) for country in countries if country != ""]
+        countries = [cf_common.reformat_country_name(country) for country in countries if country != ""]
 
         users = None
         if resource == 'codeforces.com':
