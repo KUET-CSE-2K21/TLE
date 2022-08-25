@@ -74,7 +74,9 @@ def get_cf_user(userid, guild_id):
 def complete_duel(duelid, guild_id, win_status, winner_id, loser_id, finish_time, score, dtype):
     winner_r = cf_common.user_db.get_duel_rating(winner_id)
     loser_r = cf_common.user_db.get_duel_rating(loser_id)
+
     delta = round(elo_delta(winner_r, loser_r, score))
+
     rc = cf_common.user_db.complete_duel(
         duelid, win_status, finish_time, winner_id, loser_id, delta, dtype)
     if rc == 0:
@@ -86,6 +88,13 @@ def complete_duel(duelid, guild_id, win_status, winner_id, loser_id, finish_time
     winner_cf = get_cf_user(winner_id, guild_id)
     loser_cf = get_cf_user(loser_id, guild_id)
     desc = f'Rating change after <@{winner_id}> vs <@{loser_id}>:'
+
+    if delta < 0:
+        delta = -delta
+        winner_r, loser_r = loser_r, winner_r
+        winner_cf, loser_cf = loser_cf, winner_cf
+    # swap winner with loser if needed
+
     embed = discord_common.cf_color_embed(description=desc)
     embed.add_field(name=f'{winner_cf.handle}',
                     value=f'{winner_r} \N{LONG RIGHTWARDS ARROW} {winner_r + delta} **(+{delta})**')
