@@ -226,7 +226,7 @@ def days_ago(t):
         return 'yesterday'
     return f'{math.floor(days)} days ago'
 
-def reformat_country_name(country: string):
+def reformat_country_name(country):
     country = country.lstrip().rstrip()
     words = country.split()
 
