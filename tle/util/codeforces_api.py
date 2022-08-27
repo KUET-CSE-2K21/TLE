@@ -17,7 +17,6 @@ GYM_BASE_URL = 'https://codeforces.com/gym/'
 PROFILE_BASE_URL = 'https://codeforces.com/profile/'
 ACMSGURU_BASE_URL = 'https://codeforces.com/problemsets/acmsguru/'
 GYM_ID_THRESHOLD = 100000
-DEFAULT_RATING = 100
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +54,7 @@ class User(namedtuple('User', 'handle firstName lastName country city organizati
 
     @property
     def effective_rating(self):
-        return self.rating if self.rating is not None else DEFAULT_RATING
+        return min(3500, max(800, self.rating)) if self.rating else 800
 
     @property
     def rank(self):
