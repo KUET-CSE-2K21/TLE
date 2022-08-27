@@ -124,7 +124,7 @@ async def bot_error_handler(inter, exception):
     elif isinstance(exception, commands.DisabledCommand):
         await inter.send(embed=embed_alert('Sorry, this command is temporarily disabled.'))
     elif isinstance(exception, commands.NotOwner):
-        await inter.send(embed=embed_alert('Sorry, this command is owner-only :face_with_raised_eyebrow:'))
+        await inter.send(embed=embed_alert('Sorry, this is an owner-only command :face_with_raised_eyebrow:'))
     elif isinstance(exception, (cf.CodeforcesApiError, commands.UserInputError)):
         await inter.send(embed=embed_alert(exception))
     elif isinstance(exception, (clist.ClistApiError, commands.CheckAnyFailure)):

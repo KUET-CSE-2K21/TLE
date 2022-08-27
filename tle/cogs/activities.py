@@ -462,6 +462,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
                            message = await inter.original_message(),
                            wait_time=5 * 60, set_pagenum_footers=True)
 
+    @commands.cooldown(1, 120, type = commands.BucketType.guild)
     @commands.slash_command(description='Show weekly leaderboard')
     async def leaderboard(self, inter):
         await inter.response.defer()

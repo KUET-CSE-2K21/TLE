@@ -652,7 +652,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         member = member or inter.author
         has_perm = await self.bot.is_owner(inter.author) \
             or inter.author.guild_permissions.administrator \
-            or discord_common.is_guild_owner_predicate(inter.author)
+            or discord_common.is_guild_owner_predicate(inter)
 
         if not has_perm and member != inter.author:
             return await inter.edit_original_message(f'{inter.author.mention}, you can\'t remove other members\' handle.')

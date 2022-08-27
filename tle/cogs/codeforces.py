@@ -418,7 +418,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
         has_perm = await self.bot.is_owner(inter.author) \
             or inter.author.guild_permissions.administrator \
-            or discord_common.is_guild_owner_predicate(inter.author)
+            or discord_common.is_guild_owner_predicate(inter)
 
         challenge_id, issue_time, name, contestId, index, delta = active
         finish_time = int(datetime.datetime.now().timestamp())
@@ -931,7 +931,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         member = member or inter.author
         has_perm = await self.bot.is_owner(inter.author) \
             or inter.author.guild_permissions.administrator \
-            or discord_common.is_guild_owner_predicate(inter.author)
+            or discord_common.is_guild_owner_predicate(inter)
         if not has_perm and member != inter.author:
             return await inter.edit_original_message(f'{inter.author.mention}, you can\'t invalidate other members\' duel.')
 
