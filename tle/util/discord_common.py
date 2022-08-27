@@ -127,7 +127,7 @@ async def bot_error_handler(inter, exception):
         await inter.send(embed=embed_alert('Sorry, this is an owner-only command :face_with_raised_eyebrow:'))
     elif isinstance(exception, (cf.CodeforcesApiError, commands.UserInputError)):
         await inter.send(embed=embed_alert(exception))
-    elif isinstance(exception, (clist.ClistApiError, commands.CheckAnyFailure)):
+    elif isinstance(exception, (clist.ClistApiError, commands.CheckAnyFailure, commands.CommandOnCooldown)):
         await inter.send(embed=embed_alert(exception))
     else:
         msg = 'Ignoring exception in command {}:'.format(inter.application_command)

@@ -465,7 +465,7 @@ class Activities(commands.Cog, description = "Analyzing activities with graphs a
     @commands.cooldown(1, 120, type = commands.BucketType.guild)
     @commands.slash_command(description='Show weekly leaderboard')
     async def leaderboard(self, inter):
-        await inter.response.defer()
+        await inter.response.send_message('This may take a while...')
         handles = {handle for discord_id, handle
                             in cf_common.user_db.get_handles_for_guild(inter.guild.id)}
         date = dt.datetime.now()-dt.timedelta(days=7)
