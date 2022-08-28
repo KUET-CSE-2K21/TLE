@@ -102,7 +102,6 @@ async def _send_reminder_at(channel, role, contests, before_secs, send_time,
     for name, value in _get_embed_fields_from_contests(
             contests, localtimezone):
         embed.add_field(name=name, value=value)
-    embed.timestamp = datetime.datetime.utcnow()
     await channel.send(role.mention, embed=embed)
 
 _WEBSITE_ALLOWED_PATTERNS = defaultdict(list)
@@ -230,9 +229,10 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                 _WEBSITE_ALLOWED_PATTERNS,
                 _WEBSITE_DISALLOWED_PATTERNS)]
 
-    def get_guild_contests(self, contests, guild_id, resources=None):
+    def get_guild_contests(self, contests, guild_id):
         settings = cf_common.user_db.get_reminder_settings(guild_id)
-        if settings: _, _, _, website_allowed_patterns, website_disallowed_patterns = settings
+        if not settings: return []
+        _, _, _, website_allowed_patterns, website_disallowed_patterns = settings
         website_allowed_patterns = json.loads(website_allowed_patterns) if settings else _WEBSITE_ALLOWED_PATTERNS
         website_disallowed_patterns = json.loads(website_disallowed_patterns) if settings else _WEBSITE_DISALLOWED_PATTERNS
         contests = [contest for contest in contests if contest.is_desired(
