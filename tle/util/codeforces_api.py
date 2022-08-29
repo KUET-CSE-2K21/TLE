@@ -250,7 +250,6 @@ async def _query_api(path, data=None):
             try:
                 respjson = await resp.json()
             except aiohttp.ContentTypeError:
-                logger.warning(f'CF API did not respond with JSON, status {resp.status}.')
                 raise CodeforcesApiError
             if resp.status == 200:
                 return respjson['result']

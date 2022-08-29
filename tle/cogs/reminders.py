@@ -236,7 +236,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         website_allowed_patterns = json.loads(website_allowed_patterns) if settings else _WEBSITE_ALLOWED_PATTERNS
         website_disallowed_patterns = json.loads(website_disallowed_patterns) if settings else _WEBSITE_DISALLOWED_PATTERNS
         contests = [contest for contest in contests if contest.is_desired(
-            website_allowed_patterns, website_disallowed_patterns, resources)]
+            website_allowed_patterns, website_disallowed_patterns)]
         return contests
 
     def get_all_contests(self, contests, guild_id, resources=None):
@@ -254,7 +254,6 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         for task in self.task_map[guild_id]:
             task.cancel()
         self.task_map[guild_id].clear()
-        self.logger.info(f'Tasks for guild {guild_id} cleared')
         if not self.start_time_map:
             return
         settings = cf_common.user_db.get_reminder_settings(guild_id)
@@ -287,9 +286,6 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
                         before_secs, localtimezone)
                 )
                 self.task_map[guild_id].append(task)
-        self.logger.info(
-            f'{len(self.task_map[guild_id])} '
-            f'tasks scheduled for guild {guild_id}')
 
     @staticmethod
     def _make_contest_pages(contests, title, localtimezone):
