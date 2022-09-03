@@ -240,7 +240,7 @@ def get_prettyhandles_image(rows, font, color_converter=rating_to_color):
 
     def draw_row(pos, username, handle, rating, color, y):
         x = START_X
-        draw.text((x, y), pos, fill=color, font=font)
+        draw.text((x, y), pos+1, fill=color, font=font)
         x += WIDTH_RANK
         draw.text((x, y), username, fill=color, font=font)
         x += WIDTH_NAME
@@ -655,7 +655,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             or discord_common.is_guild_owner_predicate(inter)
 
         if not has_perm and member != inter.author:
-            return await inter.edit_original_message(f'{inter.author.mention}, you can\'t remove other members\' handle.')
+            return await inter.edit_original_message(f'You don\'t have permission to remove other members\' handle.')
 
         await self._remove(member)
         embed = discord_common.embed_success(f'Handle for `{member}` has been removed.')
@@ -849,8 +849,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 member = id_to_member[user['id']]
                 if member is None: continue
                 idx = len(rows)
-                if member==inter.author:
-                    author_idx = idx
+                if member == inter.author: author_idx = idx
                 rows.append((idx, member.display_name, user['handle'], user['rating']))
         else:
             user_id_cf_user_pairs = cf_common.user_db.get_cf_users_for_guild(inter.guild.id)
@@ -858,32 +857,23 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                                     reverse=True)
             for user_id, cf_user in user_id_cf_user_pairs:
                 member = inter.guild.get_member(user_id)
-                if member is None:
-                    continue
+                if member is None: continue
                 idx = len(rows)
-                if member == inter.author:
-                    author_idx = idx
+                if member == inter.author: author_idx = idx
                 rows.append((idx, member.display_name, cf_user.handle, cf_user.rating))
 
         if not rows:
-            raise HandleCogError('No members with registered handles.')
+            return inter.edit_original_message(embed = discord_common.embed_alert('No members with registered handles.'))
         max_page = math.ceil(len(rows) / _PRETTY_HANDLES_PER_PAGE) - 1
-        if author_idx is None and page_no is None:
-            raise HandleCogError(f'Please specify a page number between 0 and {max_page}.')
+        if author_idx is None and (page_no is None or (0 <= page_no or max_page + 1 < page_no)):
+            return inter.edit_original_message(embed = discord_common.embed_alert(f'Please specify a page number between 1 and {max_page + 1}.'))
 
         msg = None
         if page_no is not None:
-            if page_no < 0 or max_page < page_no:
-                msg_fmt = 'Page number must be between 0 and {}. Showing page {}.'
-                if page_no < 0:
-                    msg = msg_fmt.format(max_page, 0)
-                    page_no = 0
-                else:
-                    msg = msg_fmt.format(max_page, max_page)
-                    page_no = max_page
-            start_idx = page_no * _PRETTY_HANDLES_PER_PAGE
+            msg = f'Showing page #{page_no}:'
+            start_idx = (page_no-1) * _PRETTY_HANDLES_PER_PAGE
         else:
-            msg = f'Showing neighbourhood of user `{inter.author.display_name}`.'
+            msg = f'Showing neighbourhood of user `{inter.author.display_name}`:'
             num_before = (_PRETTY_HANDLES_PER_PAGE - 1) // 2
             start_idx = max(0, author_idx - num_before)
         rows_to_display = rows[start_idx : start_idx + _PRETTY_HANDLES_PER_PAGE]

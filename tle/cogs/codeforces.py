@@ -110,21 +110,20 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
     async def _validate_gitgud_status(self, inter, delta):
         if delta is not None and delta % 100 != 0:
-            await inter.edit_original_message('Delta must be a multiple of 100.')
-            return False
+            inter.edit_original_message(embed = discord_common.embed_alert('Delta must be a multiple of 100.'))
+            raise Exception
 
         if delta is not None and (delta < _GITGUD_MAX_NEG_DELTA_VALUE or delta > _GITGUD_MAX_POS_DELTA_VALUE):
-            await inter.edit_original_message(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.')
-            return False
+            inter.edit_original_message(embed = discord_common.embed_alert(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.'))
+            raise Exception
 
         user_id = inter.author.id
         active = cf_common.user_db.check_challenge(user_id)
         if active is not None:
             _, _, name, contest_id, index, _ = active
             url = f'{cf.CONTEST_BASE_URL}{contest_id}/problem/{index}'
-            await inter.edit_original_message(f'You have an active challenge {name} at {url}')
-            return False
-        return True
+            inter.edit_original_message(embed = discord_common.embed_alert(f'You have an active challenge [{name}]({url}).\nType `/nogud` to give up the challenge.'))
+            raise Exception
 
     async def _gitgud(self, inter, handle, problem, delta):
         # The caller of this function is responsible for calling `_validate_gitgud_status` first.
@@ -143,15 +142,15 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
     @commands.slash_command(description='Request an unsolved problem from a contest you participated in')
     @cf_common.user_guard(group='gitgud')
-    async def upsolve(self, inter, choice: int = -1):
+    async def upsolve(self, inter, index: int = -1):
         """
         Parameters
         ----------
-        choice: Index of the problem to upsolve
+        index: Index of the problem to upsolve
         """
         await inter.response.defer()
 
-        if not await self._validate_gitgud_status(inter,delta=None): return
+        await self._validate_gitgud_status(inter,delta=None)
         handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
         user = cf_common.user_db.fetch_cf_user(handle)
         rating = round(user.effective_rating, -2)
@@ -169,8 +168,8 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         problems.sort(key=lambda problem: cf_common.cache2.contest_cache.get_contest(
             problem.contestId).startTimeSeconds, reverse=True)
 
-        if choice > 0 and choice <= len(problems):
-            problem = problems[choice - 1]
+        if index > 0 and index <= len(problems):
+            problem = problems[index - 1]
             await self._gitgud(inter, handle, problem, problem.rating - rating)
         else:
             problems = problems[:100]
@@ -180,7 +179,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
                 return data
 
             def make_page(chunk, pi, num):
-                title = f'Select a problem to upsolve(1-{num}).\nThen type `/upsolve + <problem index>` to get started.'
+                title = f'Select a problem to upsolve (1-{num}).\nThen type `/upsolve <problem index>` to get started.'
                 msg = '\n'.join(make_line(10*pi+i, prob) for i, prob in enumerate(chunk))
                 embed = discord_common.cf_color_embed(description=msg)
                 return title, embed
@@ -301,7 +300,8 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         await inter.response.defer()
 
         delta = int(delta)
-        if not await self._validate_gitgud_status(inter, delta): return
+        await self._validate_gitgud_status(inter, delta)
+
         handle, = await cf_common.resolve_handles(inter, self.converter, ('!' + str(inter.author),))
         user = cf_common.user_db.fetch_cf_user(handle)
         rating = round(user.effective_rating, -2)
@@ -410,15 +410,18 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         await inter.response.defer()
 
         member = member or inter.author
+        has_perm = await self.bot.is_owner(inter.author) or
+        inter.author.guild_permissions.administrator or
+        discord_common.is_guild_owner_predicate(inter)
+
+        if not has_perm and member != inter.author:
+            return await inter.edit_original_message('You don\'t have permission to skip other members\' gitgud challenge.')
+
         await cf_common.resolve_handles(inter, self.converter, ('!' + str(member),))
         active = cf_common.user_db.check_challenge(member.id)
         if not active:
             revoker = 'You' if member == inter.author else f'`{member}`'
             return await inter.edit_original_message(f'{revoker} do not have an active challenge')
-
-        has_perm = await self.bot.is_owner(inter.author) \
-            or inter.author.guild_permissions.administrator \
-            or discord_common.is_guild_owner_predicate(inter)
 
         challenge_id, issue_time, name, contestId, index, delta = active
         finish_time = int(datetime.datetime.now().timestamp())
@@ -933,7 +936,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             or inter.author.guild_permissions.administrator \
             or discord_common.is_guild_owner_predicate(inter)
         if not has_perm and member != inter.author:
-            return await inter.edit_original_message(f'{inter.author.mention}, you can\'t invalidate other members\' duel.')
+            return await inter.edit_original_message(f'You don\'t have permission to invalidate other members\' duel.')
 
         active = cf_common.user_db.check_duel_complete(member.id)
         if not active: return await inter.edit_original_message(f'Member `{member}` is not in a duel.')
