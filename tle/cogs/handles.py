@@ -659,7 +659,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         if not has_perm and member != inter.author:
             return await inter.edit_original_message(f'You don\'t have permission to remove other members\' handle.')
 
-        try: await self._remove(member)
+        try:
+            await self._remove(member)
+        except:
+            pass
         embed = discord_common.embed_success(f'Handle for `{member}` has been removed.')
         await inter.edit_original_message(embed=embed)
 
