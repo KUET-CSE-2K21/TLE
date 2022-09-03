@@ -649,6 +649,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         member: Member to remove handles
         """
 
+        await inter.response.defer()
+
         member = member or inter.author
         has_perm = await self.bot.is_owner(inter.author) \
             or inter.author.guild_permissions.administrator \
@@ -657,9 +659,9 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         if not has_perm and member != inter.author:
             return await inter.edit_original_message(f'You don\'t have permission to remove other members\' handle.')
 
-        await self._remove(member)
+        try: await self._remove(member)
         embed = discord_common.embed_success(f'Handle for `{member}` has been removed.')
-        await inter.response.send_message(embed=embed)
+        await inter.edit_original_message(embed=embed)
 
     @handle.sub_command(description='Resolve redirect of your handle')
     async def unmagic(self, inter):
