@@ -57,9 +57,9 @@ def ratelimit(f):
             try:
                 return await f(*args, **kwargs)
             except (CallLimitExceededError, ClientError, ClistApiError) as e:
-                await asyncio.sleep(15 * (i + 1))
                 logger.info(f'Try {i+1}/{tries} at query failed.')
                 if i < tries - 1:
+                    await asyncio.sleep(2 + i/2)
                     logger.info(f'Retrying...')
                 else:
                     logger.info(f'Aborting.')

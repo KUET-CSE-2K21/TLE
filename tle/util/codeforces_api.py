@@ -221,17 +221,17 @@ def _bool_to_str(value):
 
 
 def cf_ratelimit(f):
-    tries = 5
+    tries = 3
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:
-                await asyncio.sleep(2 * (i + 1))
                 logger.info(f'Try {i+1}/{tries} at query failed.')
                 logger.info(repr(e))
                 if i < tries - 1:
+                    await asyncio.sleep((i + 3)//2)
                     logger.info(f'Retrying...')
                 else:
                     logger.info(f'Aborting.')
@@ -263,17 +263,17 @@ async def _query_api(path, data=None):
     raise TrueApiError(comment)
 
 def proxy_ratelimit(f):
-    tries = 5
+    tries = 3
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
             try:
                 return await f(*args, **kwargs)
             except (ClientError, CallLimitExceededError, CodeforcesApiError) as e:
-                await asyncio.sleep(2 * (i + 1))
                 logger.info(f'Try {i+1}/{tries} at proxy api failed.')
                 logger.info(repr(e))
                 if i < tries - 1:
+                    await asyncio.sleep((i + 3)//2)
                     logger.info(f'Retrying...')
                 else:
                     logger.info(f'Aborting.')
