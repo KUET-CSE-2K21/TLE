@@ -410,9 +410,9 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         await inter.response.defer()
 
         member = member or inter.author
-        has_perm = await self.bot.is_owner(inter.author) or
-        inter.author.guild_permissions.administrator or
-        discord_common.is_guild_owner_predicate(inter)
+        has_perm = await self.bot.is_owner(inter.author) \
+            or inter.author.guild_permissions.administrator \
+            or discord_common.is_guild_owner_predicate(inter)
 
         if not has_perm and member != inter.author:
             return await inter.edit_original_message('You don\'t have permission to skip other members\' gitgud challenge.')
