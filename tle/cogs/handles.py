@@ -240,7 +240,7 @@ def get_prettyhandles_image(rows, font, color_converter=rating_to_color):
 
     def draw_row(pos, username, handle, rating, color, y):
         x = START_X
-        draw.text((x, y), pos+1, fill=color, font=font)
+        draw.text((x, y), pos, fill=color, font=font)
         x += WIDTH_RANK
         draw.text((x, y), username, fill=color, font=font)
         x += WIDTH_NAME
@@ -264,7 +264,7 @@ def get_prettyhandles_image(rows, font, color_converter=rating_to_color):
         name = _trim(name)
         handle = _trim(handle)
         color = color_converter(rating)
-        draw_row(str(pos), name, handle, str(rating) if rating else 'N/A', color or BLACK, y)
+        draw_row(str(pos + 1), name, handle, str(rating) if rating else 'N/A', color or BLACK, y)
         if rating and rating >= 3000:  # nutella
             nutella_x = START_X + WIDTH_RANK
             draw.text((nutella_x, y), name[0], fill=BLACK, font=font)
@@ -865,7 +865,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         if not rows:
             return inter.edit_original_message(embed = discord_common.embed_alert('No members with registered handles.'))
         max_page = math.ceil(len(rows) / _PRETTY_HANDLES_PER_PAGE) - 1
-        if author_idx is None and (page_no is None or (0 <= page_no or max_page + 1 < page_no)):
+
+        if (page_no is None and author_idx is None) or (page_no is not None and (0 <= page_no or max_page + 1 < page_no)):
             return inter.edit_original_message(embed = discord_common.embed_alert(f'Please specify a page number between 1 and {max_page + 1}.'))
 
         msg = None
