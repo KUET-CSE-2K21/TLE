@@ -110,11 +110,11 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
 
     async def _validate_gitgud_status(self, inter, delta):
         if delta is not None and delta % 100 != 0:
-            inter.edit_original_message(embed = discord_common.embed_alert('Delta must be a multiple of 100.'))
+            await inter.edit_original_message(embed = discord_common.embed_alert('Delta must be a multiple of 100.'))
             raise Exception
 
         if delta is not None and (delta < _GITGUD_MAX_NEG_DELTA_VALUE or delta > _GITGUD_MAX_POS_DELTA_VALUE):
-            inter.edit_original_message(embed = discord_common.embed_alert(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.'))
+            await inter.edit_original_message(embed = discord_common.embed_alert(f'Delta must range from {_GITGUD_MAX_NEG_DELTA_VALUE} to {_GITGUD_MAX_POS_DELTA_VALUE}.'))
             raise Exception
 
         user_id = inter.author.id
@@ -122,7 +122,7 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
         if active is not None:
             _, _, name, contest_id, index, _ = active
             url = f'{cf.CONTEST_BASE_URL}{contest_id}/problem/{index}'
-            inter.edit_original_message(embed = discord_common.embed_alert(f'You have an active challenge [{name}]({url}).\nType `/nogud` to give up the challenge.'))
+            await inter.edit_original_message(embed = discord_common.embed_alert(f'You have an active challenge [{name}]({url}).\nType `/nogud` to give up the challenge.'))
             raise Exception
 
     async def _gitgud(self, inter, handle, problem, delta):
