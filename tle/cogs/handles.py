@@ -871,7 +871,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             return await inter.edit_original_message(embed = discord_common.embed_alert('No members with registered handles.'))
         max_page = math.ceil(len(rows) / _PRETTY_HANDLES_PER_PAGE) - 1
 
-        if (page_no is None and author_idx is None) or (page_no is not None and (0 <= page_no or max_page + 1 < page_no)):
+        if (page_no is None and author_idx is None) or (page_no is not None and (page_no < 1 or page_no > max_page + 1)):
             return await inter.edit_original_message(embed = discord_common.embed_alert(f'Please specify a page number between 1 and {max_page + 1}.'))
 
         msg = None
