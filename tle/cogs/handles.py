@@ -876,7 +876,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
         msg = None
         if page_no is not None:
-            msg = f'Showing page #{page_no}:'
+            msg = f'Showing page no.{page_no}:'
             start_idx = (page_no-1) * _PRETTY_HANDLES_PER_PAGE
         else:
             msg = f'Showing neighbourhood of user `{inter.author.display_name}`:'
