@@ -96,7 +96,7 @@ def main():
     intents = disnake.Intents.default()
     intents.members = True
 
-    bot = commands.InteractionBot(intents = intents)
+    bot = commands.AutoShardedInteractionBot(intents = intents)
 
     cogs = [file.stem for file in Path('tle', 'cogs').glob('*.py')]
     for extension in cogs:
