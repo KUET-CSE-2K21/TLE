@@ -87,10 +87,6 @@ def main():
         logging.error('Token required')
         return
 
-    allow_self_register = environ.get('ALLOW_DUEL_SELF_REGISTER')
-    if allow_self_register:
-        constants.ALLOW_DUEL_SELF_REGISTER = bool(distutils.util.strtobool(allow_self_register))
-
     setup()
     
     intents = disnake.Intents.default()

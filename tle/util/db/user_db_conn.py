@@ -491,7 +491,6 @@ class UserDbConn:
         query = ('DELETE FROM clist_account_ids '
                  'WHERE guild_id = ?')
         self.conn.execute(query, (guild_id,))
-        self.disable_auto_role_update(guild_id)
         self.clear_reminder_settings(guild_id)
         self.clear_rankup_channel(guild_id)
         self.update()
@@ -798,31 +797,6 @@ class UserDbConn:
             res = self.conn.execute(query, (guild_id,)).rowcount
         self.update()
         return res
-
-    def enable_auto_role_update(self, guild_id):
-        query = ('INSERT OR REPLACE INTO auto_role_update '
-                 '(guild_id) '
-                 'VALUES (?)')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (guild_id,)).rowcount
-        self.update()
-        return res
-
-    def disable_auto_role_update(self, guild_id):
-        query = ('DELETE FROM auto_role_update '
-                 'WHERE guild_id = ?')
-        res = None
-        with self.conn:
-            res = self.conn.execute(query, (guild_id,)).rowcount
-        self.update()
-        return res
-
-    def has_auto_role_update_enabled(self, guild_id):
-        query = ('SELECT 1 as Result '
-                'FROM auto_role_update '
-                'WHERE guild_id = ?')
-        return self.conn.execute(query, (guild_id,)).fetchone() is not None
 
     def update_status(self, guild_id: str, active_ids: list):
         placeholders = ', '.join(['?'] * len(active_ids))

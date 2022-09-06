@@ -50,7 +50,7 @@ class CallLimitExceededError(TrueApiError):
         self.comment = comment
 
 def ratelimit(f):
-    tries = 3
+    tries = 4
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):

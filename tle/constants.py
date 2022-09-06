@@ -23,8 +23,6 @@ LOG_FILE_PATH = os.path.join(LOGS_DIR, 'tle.log')
 ALL_DIRS = (attrib_value for attrib_name, attrib_value in list(globals().items())
             if attrib_name.endswith('DIR'))
 
-ALLOW_DUEL_SELF_REGISTER = False
-
 TLE_MODERATOR = os.environ.get('TLE_MODERATOR', 'Moderator')
 
 CONTESTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'contests.json')

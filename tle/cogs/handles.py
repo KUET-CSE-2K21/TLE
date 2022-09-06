@@ -383,9 +383,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         change_by_handle = {change.handle: change for change in changes}
 
         async def update_for_guild(guild):
-            if cf_common.user_db.has_auto_role_update_enabled(guild.id):
-                with contextlib.suppress(HandleCogError):
-                    await self._update_ranks_all(guild)
+            with contextlib.suppress(HandleCogError):
+                await self._update_ranks_all(guild)
             channel_id = cf_common.user_db.get_rankup_channel(guild.id)
             channel = guild.get_channel(channel_id)
             if channel is not None:
@@ -1054,28 +1053,6 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await self._update_stars_all(inter.guild)
         await inter.edit_original_message(embed=discord_common.embed_success('Roles updated successfully.'))
     
-    @roleupdate.sub_command(description='Enable or disable auto role updates')
-    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def auto(self, inter, choice: str = commands.Param(choices=["on", "off"])):
-        """Auto role update refers to automatic updating of rank roles when rating
-        changes are released on Codeforces. 'on'/'off' disables or enables auto role
-        updates.
-
-        Parameters
-        ----------
-        choice: on/off
-        """
-        if choice == 'on':
-            rc = cf_common.user_db.enable_auto_role_update(inter.guild.id)
-            if not rc:
-                raise HandleCogError('Auto role update is already enabled.')
-            await inter.send(embed=discord_common.embed_success('Auto role updates enabled.'))
-        elif choice == 'off':
-            rc = cf_common.user_db.disable_auto_role_update(inter.guild.id)
-            if not rc:
-                raise HandleCogError('Auto role update is already disabled.')
-            await inter.send(embed=discord_common.embed_success('Auto role updates disabled.'))
-
     @roleupdate.sub_command_group(description='Group of commands for publishing rank update')
     async def publish(self, inter):
         """

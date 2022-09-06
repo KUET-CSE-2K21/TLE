@@ -221,7 +221,7 @@ def _bool_to_str(value):
 
 
 def cf_ratelimit(f):
-    tries = 3
+    tries = 4
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
@@ -263,7 +263,7 @@ async def _query_api(path, data=None):
     raise TrueApiError(comment)
 
 def proxy_ratelimit(f):
-    tries = 3
+    tries = 4
     @functools.wraps(f)
     async def wrapped(*args, **kwargs):
         for i in range(tries):
