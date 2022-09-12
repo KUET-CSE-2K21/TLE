@@ -34,6 +34,11 @@ async def _create_roles(guild, ranks):
         if rank.title not in roles:
             await guild.create_role(name=rank.title, colour=disnake.Colour(rank.color_embed))
 
+async def _delete_roles(guild, ranks):
+    roles = [rank.title for rank in ranks[::-1]]
+    for role in guild.roles:
+        if role.name in roles: await role.delete()
+
 def embed_success(desc):
     return disnake.Embed(description=str(desc), color=_SUCCESS_GREEN)
 
@@ -130,24 +135,15 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
         except Exception as e:
             await inter.response.send_message('Invalid math expression. Please try again!')
     
-    @commands.slash_command(description='Create roles for codeforces/codechef')
-    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def createroles(self, inter):
-        pass
-    
-    @createroles.sub_command(description='Create roles for codeforces ranks')
-    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def codeforces(self, inter):
-        await inter.response.defer()
-        await _create_roles(inter.guild, CODEFORCES_RATED_RANKS)
-        await inter.edit_original_message(embed=discord_common.embed_success('Roles created successfully.'))
-
-    @createroles.sub_command(description='Create roles for codechef stars')
-    @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def codechef(self, inter):
-        await inter.response.defer()
+    @commands.Cog.listener()
+    async def on_guild_join(self, guild):
         await _create_roles(inter.guild, CODECHEF_RATED_RANKS)
-        await inter.edit_original_message(embed=discord_common.embed_success('Roles created successfully.'))
+        await _create_roles(inter.guild, CODEFORCES_RATED_RANKS)
+
+    @commands.Cog.listener()
+    async def on_guild_remove(self, guild):
+        await _delete_roles(inter.guild, CODECHEF_RATED_RANKS)
+        await _delete_roles(inter.guild, CODEFORCES_RATED_RANKS)
 
 def setup(bot):
     bot.add_cog(Moderator(bot))

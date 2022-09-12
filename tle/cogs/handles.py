@@ -292,7 +292,10 @@ def _make_profile_embed(member, user, handles={}):
         title = resource_name(key)
         embed.add_field(name=title, value=handles[key], inline=True)
     if user:
-        embed.set_thumbnail(url=f'{user.titlePhoto}')
+        try:
+            embed.set_thumbnail(url=f'{user.titlePhoto}')
+        except:
+            pass
     return embed
 
 
@@ -443,24 +446,25 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         resource: Competitive Programming platform (default is Codeforces)
         """
         await inter.response.defer()
-        message = await inter.original_message()
 
-        if not inter.permissions.administrator:
+        has_perm = await self.bot.is_owner(inter.author) \
+            or inter.author.guild_permissions.administrator \
+            or discord_common.is_guild_owner_predicate(inter)
+
+        if not has_perm:
             message = 'You must have Administrator permission to use this command.\nIf you want to set handle for yourself, try `/handle identify` instead.'
             return await inter.edit_original_message(embed = discord_common.embed_alert(message))
 
         embed = None
         if resource!='codeforces.com':
             users = await clist.account(handle=handle, resource=resource)
-            for user in users:
-                ok = await self._set_account_id(member, inter, user, message)
+            for user in users: await self._set_account_id(member, inter, user)
         else:
             user, = await cf.user.info(handles=[handle])
-            ok = await self._set(inter, member, user, message)
-        if not ok: await self._get(inter, member, 'text')
-        else: await self._get(inter, member, 'edit', message)
+            await self._set(inter, member, user)
+        await self._get(inter, member)
     
-    async def _set_account_id(self, member, inter, user, old_message = None):
+    async def _set_account_id(self, member, inter, user):
         try:
             guild_id = inter.guild.id
             cf_common.user_db.set_account_id(member.id, guild_id, user['id'], user['resource'], user['handle'])
@@ -468,29 +472,16 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 roletitle = rating2star(user['rating']).title
                 roles = [role for role in inter.guild.roles if role.name == roletitle]
                 if not roles:
-                    message = f'Role for `{roletitle}` is not present in the server.\n> Tip: If you have Administrator permission you can type `/createroles codechef` to automatically create roles for CodeChef users, then type `/roleupdate codechef` to apply changes.'
-                    embed = discord_common.embed_neutral(message)
-                    if old_message == None:
-                        await inter.send(embed = embed)
-                    else:
-                        await old_message.edit(content = '', embed = embed)
-                    return False
+                    raise HandleCogError(f'Role for `{roletitle}` is not present in the server.')
                 else:
                     try:
                         await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
                     except disnake.Forbidden:
-                        message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.'
-                        embed = discord_common.embed_neutral(message)
-                        if old_message == None:
-                            await inter.send(embed = embed)
-                        else:
-                            await old_message.edit(content = '', embed = embed)
-                        return False
-            return True
+                        raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
 
-    async def _set(self, inter, member, user, old_message = None, nolog = False):
+    async def _set(self, inter, member, user):
         handle = user.handle
         try:
             cf_common.user_db.set_handle(member.id, inter.guild.id, handle)
@@ -500,28 +491,12 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
         if user.rank == cf.UNRATED_RANK: return True
         roles = [role for role in inter.guild.roles if role.name == user.rank.title]
-        if not roles:
-            if not nolog:
-                message = f'Role for rank `{user.rank.title}` is not present in the server.\n> Tip: If you have Administrator permission you can type `/createroles codeforces` to automatically create roles for CodeForces users, then type `/roleupdate codeforces` to apply changes.'
-                embed = discord_common.embed_neutral(message)
-                if old_message == None:
-                    await inter.send(embed = embed)
-                else:
-                    await old_message.edit(content = '', embed = embed)
-            return False
+        if not roles: raise HandleCogError(f'Role for rank `{user.rank.title}` is not present in the server.')
 
         try:
             await self.update_member_rank_role(member, roles[0], reason='New handle set for user')
         except disnake.Forbidden:
-            if not nolog:
-                message = f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.'
-                embed = discord_common.embed_neutral(message)
-                if old_message == None:
-                    await inter.send(embed = embed)
-                else:
-                    await old_message.edit(content = '', embed = embed)
-            return False
-        return True
+            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.')
 
     @handle.sub_command(description='Identify your CP account')
     @cf_common.user_guard(group='handle',
@@ -558,7 +533,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             if scaper.assert_display_name(handle, token, resource, inter.author.mention):
                 member = inter.author
                 await self._set_account_id(member, inter, user)
-                await self._get(inter, member, 'text')
+                await self._get(inter, member)
             else:
                 await inter.send(f'Sorry {invoker}, can you try again?')
         else:
@@ -578,24 +553,19 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 user, = await cf.user.info(handles=[handle])
                 member = inter.author
                 await self._set(inter, member, user)
-                await self._get(inter, member, 'text')
+                await self._get(inter, member)
             else:
                 await inter.send(f'Sorry {invoker}, can you try again?')
 
-    async def _get(self, inter, member, mode, message = None):
+    async def _get(self, inter, member):
         handle = cf_common.user_db.get_handle(member.id, inter.guild.id)
         handles = cf_common.user_db.get_account_id_by_user(member.id, inter.guild.id)
         if not handle and handles is None:
-            embed = discord_common.embed_neutral(f'Handle for `{member}` not found in database')
-            if mode == 'text': return await inter.channel.send(embed=embed)
-            if mode == 'response': return await inter.send(embed=embed)
-            if mode == 'edit': return await message.edit(content = '', embed=embed, view = None)
+            raise HandleCogError(f'Handle for `{member}` not found in database')
         user = cf_common.user_db.fetch_cf_user(handle) if handle else None
         handles = cf_common.user_db.get_account_id_by_user(member.id, inter.guild.id)
         embed = _make_profile_embed(member, user,handles=handles)
-        if mode == 'text': await inter.channel.send(embed=embed)
-        if mode == 'response': await inter.send(embed=embed)
-        if mode == 'edit': await message.edit(content = '', embed=embed, view = None)
+        await inter.send(embed = embed)
 
     @handle.sub_command(description='Get handle by Discord username')
     async def get(self, inter, member: disnake.Member):
@@ -606,8 +576,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         ----------
         member: Member to get handle
         """
-        await inter.response.defer()
-        await self._get(inter, member, 'edit', await inter.original_message())
+        await self._get(inter, member)
 
     @handle.sub_command(description='Get Discord username by cf handle')
     async def rget(self, inter, handle: str):
@@ -714,7 +683,10 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             if not cf_user:
                 failed.append(handle)
             else:
-                await self._set(inter, member, cf_user, nolog = True)
+                try:
+                    await self._set(inter, member, cf_user)
+                except:
+                    pass
                 fixed.append((handle, cf_user.handle))
 
         # Return summary embed
@@ -928,7 +900,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                     await self.update_member_star_role(member, role_to_assign, reason='CodeChef star updates')
                 except disnake.Forbidden:
                     ok = False
-        if not ok: raise HandleCogError(f'Cannot update roles for some members. Make sure TLE has a higher role than other CodeChef roles, then type `/roleupdate codechef` to try updating roles again.')
+        if not ok: raise HandleCogError(f'Cannot update roles for some members: missing permission.')
 
     async def _update_ranks(self, guild, res):
         member_handles = [(guild.get_member(user_id), handle) for user_id, handle in res]
@@ -954,7 +926,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 await self.update_member_rank_role(member, role_to_assign, reason='Codeforces rank update')
             except disnake.Forbidden:
                 ok = False
-        if not ok: raise HandleCogError(f'Cannot update roles for some members. Make sure TLE has a higher role than other CodeForces roles, then type `/roleupdate codeforces` to try updating roles again.')
+        if not ok: raise HandleCogError(f'Cannot update roles for some members: missing permission.')
 
     @staticmethod
     def _make_rankup_embeds(guild, contest, change_by_handle):
