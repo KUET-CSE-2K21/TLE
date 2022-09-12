@@ -137,13 +137,13 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
     
     @commands.Cog.listener()
     async def on_guild_join(self, guild):
-        await _create_roles(inter.guild, CODECHEF_RATED_RANKS)
-        await _create_roles(inter.guild, CODEFORCES_RATED_RANKS)
+        await _create_roles(guild, CODECHEF_RATED_RANKS)
+        await _create_roles(guild, CODEFORCES_RATED_RANKS)
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild):
-        await _delete_roles(inter.guild, CODECHEF_RATED_RANKS)
-        await _delete_roles(inter.guild, CODEFORCES_RATED_RANKS)
+        await _delete_roles(guild, CODECHEF_RATED_RANKS)
+        await _delete_roles(guild, CODEFORCES_RATED_RANKS)
 
 def setup(bot):
     bot.add_cog(Moderator(bot))
