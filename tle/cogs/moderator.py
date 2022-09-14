@@ -162,11 +162,10 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
     async def deleterole(self, inter, platform: commands.option_enum(["CodeForces", "CodeChef"]) = "All"):
         await inter.response.defer()
 
-        try:
-            if platform in ["CodeChef", "All"]:
-                await _delete_roles(guild, CODECHEF_RATED_RANKS)
-            if platform in ["CodeForces", "All"]:
-                await _delete_roles(guild, CODEFORCES_RATED_RANKS)
+        if platform in ["CodeChef", "All"]:
+            await _delete_roles(guild, CODECHEF_RATED_RANKS)
+        if platform in ["CodeForces", "All"]:
+            await _delete_roles(guild, CODEFORCES_RATED_RANKS)
 
         await inter.edit_original_message('OK')
 
