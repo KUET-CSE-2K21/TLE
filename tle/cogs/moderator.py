@@ -150,17 +150,12 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
     async def createrole(self, inter, platform: commands.option_enum(["CodeForces", "CodeChef"]) = "All"):
         await inter.response.defer()
 
-        try:
-            if platform in ["CodeChef", "All"]:
-                await _create_roles(guild, CODECHEF_RATED_RANKS)
-            if platform in ["CodeForces", "All"]:
-                await _create_roles(guild, CODEFORCES_RATED_RANKS)
+        if platform in ["CodeChef", "All"]:
+            await _create_roles(guild, CODECHEF_RATED_RANKS)
+        if platform in ["CodeForces", "All"]:
+            await _create_roles(guild, CODEFORCES_RATED_RANKS)
 
-            message = 'Roles created successfully'
-            await inter.edit_original_message(embed = discord_common.embed_success(message))
-        except:
-            message = 'Failed to create roles: Missing permission'
-            await inter.edit_original_message(embed = discord_common.embed_alert(message))
+        await inter.edit_original_message('OK')
 
     @commands.slash_command(description = 'Automatically delete roles for CodeForces or CodeChef handles')
     @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
@@ -173,11 +168,7 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
             if platform in ["CodeForces", "All"]:
                 await _delete_roles(guild, CODEFORCES_RATED_RANKS)
 
-            message = 'Roles deleted successfully'
-            await inter.edit_original_message(embed = discord_common.embed_success(message))
-        except:
-            message = 'Failed to delete roles: Missing permission'
-            await inter.edit_original_message(embed = discord_common.embed_alert(message))
+        await inter.edit_original_message('OK')
 
 def setup(bot):
     bot.add_cog(Moderator(bot))
