@@ -771,7 +771,10 @@ class Codeforces(commands.Cog, description = "Ask for or challenge your friends 
             embed.add_field(name='Slowest win',
                             value=duel_to_string(wins[-1]), inline=False)
 
-        embed.set_thumbnail(url=f'{user.titlePhoto}')
+        tmp = str(user.titlePhoto)
+        if tmp[:2] == "//": tmp = "https:" + tmp
+
+        embed.set_thumbnail(url=f'{tmp}')
         await inter.edit_original_message(embed=embed)
 
     async def _paginate_duels(self, fake_data, message, inter, show_id):

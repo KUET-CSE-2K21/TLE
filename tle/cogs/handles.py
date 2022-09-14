@@ -292,10 +292,10 @@ def _make_profile_embed(member, user, handles={}):
         title = resource_name(key)
         embed.add_field(name=title, value=handles[key], inline=True)
     if user:
-        try:
-            embed.set_thumbnail(url=f'{user.titlePhoto}')
-        except:
-            pass
+        tmp = str(user.titlePhoto)
+        if tmp[:2] == "//": tmp = "https:" + tmp
+
+        embed.set_thumbnail(url=f'{tmp}')
     return embed
 
 
@@ -465,21 +465,22 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         await self._get(inter, member)
     
     async def _set_account_id(self, member, inter, user):
+        guild_id = inter.guild.id
         try:
-            guild_id = inter.guild.id
             cf_common.user_db.set_account_id(member.id, guild_id, user['id'], user['resource'], user['handle'])
-            if user['resource'] == 'codechef.com':
-                roletitle = rating2star(user['rating']).title
-                roles = [role for role in inter.guild.roles if role.name == roletitle]
-                if not roles:
-                    raise HandleCogError(f'Role for `{roletitle}` is not present in the server.')
-                else:
-                    try:
-                        await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
-                    except disnake.Forbidden:
-                        raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.')
         except db.UniqueConstraintFailed:
             raise HandleCogError(f'The handle `{user["handle"]}` is already associated with another user.')
+
+        if user['resource'] != 'codechef.com': return
+        # only set role for codechef and codeforces users only
+
+        roletitle = rating2star(user['rating']).title
+        roles = [role for role in inter.guild.roles if role.name == roletitle]
+        if not roles: return
+        try:
+            await self.update_member_star_role(member, roles[0], reason='CodeChef Account Set')
+        except disnake.Forbidden:
+            pass
 
     async def _set(self, inter, member, user):
         handle = user.handle
@@ -489,14 +490,12 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
             raise HandleCogError(f'The handle `{handle}` is already associated with another user.')
         cf_common.user_db.cache_cf_user(user)
 
-        if user.rank == cf.UNRATED_RANK: return True
         roles = [role for role in inter.guild.roles if role.name == user.rank.title]
-        if not roles: raise HandleCogError(f'Role for rank `{user.rank.title}` is not present in the server.')
-
+        if not roles: return
         try:
             await self.update_member_rank_role(member, roles[0], reason='New handle set for user')
         except disnake.Forbidden:
-            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.')
+            pass
 
     @handle.sub_command(description='Identify your CP account')
     @cf_common.user_guard(group='handle',
@@ -576,6 +575,8 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         ----------
         member: Member to get handle
         """
+        await inter.response.defer()
+
         await self._get(inter, member)
 
     @handle.sub_command(description='Get Discord username by cf handle')
@@ -601,11 +602,16 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         rc = cf_common.user_db.remove_handle(member.id, member.guild.id)
         if not rc:
             raise HandleCogError(f'Handle for `{member}` not found in database')
+            
         try:
             await self.update_member_rank_role(member, role_to_assign=None, reason='Handle removed for user')
+        except:
+            pass
+
+        try:
             await self.update_member_star_role(member, role_to_assign=None, reason='Handle removed for user')
-        except disnake.Forbidden:
-            raise HandleCogError(f'Cannot auto update role for `{member}`: Missing permission.\nMake sure TLE is granted "Manage Roles" permission and has a higher role than other Codeforces or CodeChef roles, then type `/roleupdate` to try updating roles again.')
+        except:
+            pass
 
     @handle.sub_command(description='Remove handle for a user')
     async def remove(self, inter, member: disnake.Member = None):
@@ -889,7 +895,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         if missing_roles:
             roles_str = ', '.join(f'`{role}`' for role in missing_roles)
             plural = 's' if len(missing_roles) > 1 else ''
-            raise HandleCogError(f'Role{plural} for rank{plural} {roles_str} is not present in the server.\n> Tip: If you have Administrator permission you can type `/createroles codechef` to automatically create roles for CodeChef users, then type `/roleupdate codechef` to apply changes.')
+            raise HandleCogError(f'Role{plural} for rank{plural} {roles_str} is not present in the server.')
 
         ok = True
         for user in clist_users:
@@ -900,7 +906,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                     await self.update_member_star_role(member, role_to_assign, reason='CodeChef star updates')
                 except disnake.Forbidden:
                     ok = False
-        if not ok: raise HandleCogError(f'Cannot update roles for some members: missing permission.')
+        if not ok: raise HandleCogError(f'Cannot update roles for some members: Missing permission.')
 
     async def _update_ranks(self, guild, res):
         member_handles = [(guild.get_member(user_id), handle) for user_id, handle in res]
@@ -917,7 +923,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
         if missing_roles:
             roles_str = ', '.join(f'`{role}`' for role in missing_roles)
             plural = 's' if len(missing_roles) > 1 else ''
-            raise HandleCogError(f'Role{plural} for rank{plural} {roles_str} not present in the server.\n> Tip: If you have Administrator permission you can type `/createroles codeforces` to automatically create roles for CodeForces users, then type `/roleupdate codeforces` to apply changes.')
+            raise HandleCogError(f'Role{plural} for rank{plural} {roles_str} not present in the server.')
 
         ok = True
         for member, user in zip(members, users):
@@ -926,7 +932,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
                 await self.update_member_rank_role(member, role_to_assign, reason='Codeforces rank update')
             except disnake.Forbidden:
                 ok = False
-        if not ok: raise HandleCogError(f'Cannot update roles for some members: missing permission.')
+        if not ok: raise HandleCogError(f'Cannot update roles for some members: Missing permission.')
 
     @staticmethod
     def _make_rankup_embeds(guild, contest, change_by_handle):
@@ -999,7 +1005,7 @@ class Handles(commands.Cog, description = "Verify and manage your CP handles"):
 
     @commands.slash_command(description='Commands for role updates')
     @commands.check_any(discord_common.is_guild_owner(), commands.has_permissions(administrator = True), commands.is_owner())
-    async def roleupdate(self, inter, choice: str = commands.Param(choices=["now", "codechef"])):
+    async def roleupdate(self, inter):
         """
         Group for commands involving role updates.
         """
