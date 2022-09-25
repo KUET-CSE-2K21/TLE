@@ -151,9 +151,9 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
         await inter.response.defer()
 
         if platform in ["CodeChef", "All"]:
-            await _create_roles(guild, CODECHEF_RATED_RANKS)
+            await _create_roles(inter.guild, CODECHEF_RATED_RANKS)
         if platform in ["CodeForces", "All"]:
-            await _create_roles(guild, CODEFORCES_RATED_RANKS)
+            await _create_roles(inter.guild, CODEFORCES_RATED_RANKS)
 
         await inter.edit_original_message('OK')
 
@@ -163,9 +163,9 @@ class Moderator(commands.Cog, description = "Control the bot with cool commands 
         await inter.response.defer()
 
         if platform in ["CodeChef", "All"]:
-            await _delete_roles(guild, CODECHEF_RATED_RANKS)
+            await _delete_roles(inter.guild, CODECHEF_RATED_RANKS)
         if platform in ["CodeForces", "All"]:
-            await _delete_roles(guild, CODEFORCES_RATED_RANKS)
+            await _delete_roles(inter.guild, CODEFORCES_RATED_RANKS)
 
         await inter.edit_original_message('OK')
 
