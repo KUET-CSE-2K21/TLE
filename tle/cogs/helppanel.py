@@ -36,7 +36,7 @@ class Help(commands.Cog):
             embed = disnake.Embed(color = self.color)
             avatar = self.bot.user.display_avatar.url
 
-            embed.description = '**Tip:** an **Community Server** for **TLE** has been **opened** [HERE](https://discord.gg/eYNJsDhwdN). Come and say hi! :wave:'
+            embed.description = '**Tip:** A **Community Server** for **TLE** has been **opened** [HERE](https://discord.gg/eYNJsDhwdN). Come and say hi! :wave:'
 
             embed.set_author(name = 'TLE Plugins Commands', icon_url = avatar)
             embed.set_thumbnail(url = avatar)
