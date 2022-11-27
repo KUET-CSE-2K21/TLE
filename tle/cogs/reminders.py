@@ -38,6 +38,7 @@ class RemindersCogError(commands.CommandError):
 def _contest_start_time_format(contest, tz):
     start = contest.start_time.replace(tzinfo=dt.timezone.utc).astimezone(tz)
     tz = str(tz)
+    if tz == 'Asia/DHAKA': tz = 'BST'
     if tz == 'Asia/Kolkata': tz = 'IST'
     if tz == 'Asia/Ho_Chi_Minh': tz = 'ICT'
     if tz == 'Etc/GMT0': tz = 'GMT'
@@ -266,7 +267,7 @@ class Reminders(commands.Cog, description = "Follow upcoming CP contests with ou
         website_disallowed_patterns = json.loads(website_disallowed_patterns)
 
         localtimezone = cf_common.user_db.get_guildtz(guild_id)
-        localtimezone = pytz.timezone(localtimezone or 'Asia/Kolkata')
+        localtimezone = pytz.timezone(localtimezone or 'Asia/Dhaka')
 
         guild = self.bot.get_guild(guild_id)
         channel, role = guild.get_channel(channel_id), guild.get_role(role_id)
