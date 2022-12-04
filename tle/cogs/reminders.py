@@ -38,7 +38,7 @@ class RemindersCogError(commands.CommandError):
 def _contest_start_time_format(contest, tz):
     start = contest.start_time.replace(tzinfo=dt.timezone.utc).astimezone(tz)
     tz = str(tz)
-    if tz == 'Asia/DHAKA': tz = 'BST'
+    if tz == 'Asia/Dhaka': tz = 'BST'
     if tz == 'Asia/Kolkata': tz = 'IST'
     if tz == 'Asia/Ho_Chi_Minh': tz = 'ICT'
     if tz == 'Etc/GMT0': tz = 'GMT'
